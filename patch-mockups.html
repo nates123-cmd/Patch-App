@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patch — Mockups</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0f0f12;
+    color: #e8e8e6;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 3rem;
+  }
+  .page-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #888782;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0 0 1.5rem;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+  }
+  .tab {
+    flex: 1;
+    max-width: 160px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    background: transparent;
+    border: 0.5px solid #2e2e32;
+    border-radius: 8px;
+    color: #888782;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .tab:hover {
+    color: #b4b2a9;
+    border-color: #38383d;
+  }
+  .tab.active {
+    background: #232327;
+    color: #f4f4ee;
+    border-color: #38383d;
+  }
+  .phone-stage {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: #18181b;
+    border-radius: 16px;
+    border: 0.5px solid #2e2e32;
+  }
+  .phone {
+    width: 340px;
+    background: #1a1a1c;
+    border-radius: 32px;
+    padding: 10px;
+    border: 0.5px solid #2e2e32;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .phone-screen {
+    background: #18181b;
+    border-radius: 22px;
+    padding: 20px 18px 24px;
+    color: #e8e8e6;
+    font-size: 13px;
+    min-height: 600px;
+  }
+  .phone-screen.hidden { display: none; }
+
+  /* Title row */
+  .p-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .p-title {
+    font-size: 24px;
+    font-weight: 500;
+    color: #f4f4ee;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .p-utility {
+    display: flex;
+    gap: 14px;
+  }
+  .p-util-link {
+    font-size: 12px;
+    color: #888782;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .p-util-link:hover { color: #b4b2a9; }
+
+  /* Capture block */
+  .p-capture-block {
+    background: #232327;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 20px;
+    border: 0.5px solid #2e2e32;
+  }
+  .p-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .p-pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: #2e2e32;
+    color: #b4b2a9;
+    border: 0.5px solid #38383d;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .p-pill:hover { background: #38383d; }
+  .p-pill.selected {
+    background: #f5d547;
+    color: #1a1a1c;
+    border-color: #f5d547;
+  }
+  .p-pill.tick { color: #a39cf0; }
+  .p-pill.break { color: #e8d4a8; }
+  .p-pill.tide { color: #85b7eb; }
+  .p-pill.still { color: #b4c89a; }
+  .p-pill.course { color: #d4995a; }
+  .p-pill.patch { color: #f5d547; }
+  .p-pill.selected.tick,
+  .p-pill.selected.break,
+  .p-pill.selected.tide,
+  .p-pill.selected.still,
+  .p-pill.selected.course,
+  .p-pill.selected.patch {
+    color: #1a1a1c;
+  }
+
+  .p-input {
+    width: 100%;
+    background: #18181b;
+    border: 0.5px solid #38383d;
+    border-radius: 10px;
+    padding: 11px 12px;
+    color: #e8e8e6;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .p-input::placeholder { color: #5f5e5a; }
+  .p-input:focus {
+    outline: none;
+    border-color: #f5d547;
+  }
+  .p-save-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .p-save-btn {
+    background: #f5d547;
+    color: #1a1a1c;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 18px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .p-save-btn:hover { background: #ffe066; }
+
+  /* Section label */
+  .p-section-label {
+    font-size: 10px;
+    color: #5f5e5a;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+
+  /* Fix card */
+  .p-fix-card {
+    background: #232327;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border: 0.5px solid #2e2e32;
+  }
+  .p-fix-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .p-app-tag {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #2e2e32;
+  }
+  .p-app-tag.tick { color: #a39cf0; }
+  .p-app-tag.break { color: #e8d4a8; }
+  .p-app-tag.tide { color: #85b7eb; }
+  .p-app-tag.still { color: #b4c89a; }
+  .p-app-tag.course { color: #d4995a; }
+  .p-app-tag.patch { color: #f5d547; }
+
+  .p-status-chip {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .p-status-chip.open {
+    background: rgba(245, 213, 71, 0.15);
+    color: #f5d547;
+  }
+  .p-status-chip.doing {
+    background: rgba(133, 183, 235, 0.15);
+    color: #85b7eb;
+  }
+  .p-status-chip.done {
+    background: rgba(180, 200, 154, 0.15);
+    color: #b4c89a;
+  }
+  .p-status-chip.wont {
+    background: rgba(95, 94, 90, 0.2);
+    color: #888782;
+    text-decoration: line-through;
+  }
+
+  .p-fix-text {
+    font-size: 13px;
+    color: #e8e8e6;
+    line-height: 1.45;
+    margin-bottom: 6px;
+  }
+  .p-fix-text.wont {
+    color: #5f5e5a;
+    text-decoration: line-through;
+  }
+  .p-fix-ts {
+    font-size: 10px;
+    color: #5f5e5a;
+  }
+
+  /* Triage */
+  .p-triage-section { margin-bottom: 14px; }
+  .p-triage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 14px;
+    background: #232327;
+    border-radius: 10px;
+    border: 0.5px solid #2e2e32;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .p-triage-header:hover { background: #2e2e32; }
+  .p-triage-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #e8e8e6;
+  }
+  .p-triage-count {
+    font-size: 11px;
+    color: #888782;
+    margin-left: 8px;
+  }
+  .p-triage-chev {
+    color: #5f5e5a;
+    font-size: 12px;
+  }
+
+  .p-filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .p-filter-chip {
+    font-size: 11px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: #232327;
+    color: #888782;
+    border: 0.5px solid #2e2e32;
+    cursor: pointer;
+  }
+  .p-filter-chip.on {
+    background: #2e2e32;
+    color: #e8e8e6;
+    border-color: #38383d;
+  }
+
+  /* Export */
+  .p-export-section { margin-bottom: 18px; }
+  .p-export-label {
+    font-size: 10px;
+    color: #5f5e5a;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+  .p-preview {
+    background: #0f0f12;
+    border: 0.5px solid #2e2e32;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    color: #b4b2a9;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .p-export-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .p-action-primary {
+    flex: 1;
+    background: #f5d547;
+    color: #1a1a1c;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .p-action-primary:hover { background: #ffe066; }
+  .p-action-secondary {
+    flex: 1;
+    background: #232327;
+    color: #e8e8e6;
+    border: 0.5px solid #38383d;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .p-action-secondary:hover { background: #2e2e32; }
+  .p-after-export {
+    font-size: 11px;
+    color: #5f5e5a;
+    text-align: center;
+    margin-top: 14px;
+  }
+
+  /* Caption below stage */
+  .caption {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 12px;
+    color: #5f5e5a;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="page-title">Patch — Screen Mockups</p>
+
+  <div class="tabs">
+    <button class="tab active" data-screen="capture">1. Capture</button>
+    <button class="tab" data-screen="triage">2. Triage</button>
+    <button class="tab" data-screen="export">3. Export</button>
+  </div>
+
+  <div class="phone-stage">
+    <div class="phone">
+
+      <!-- SCREEN 1: CAPTURE -->
+      <div class="phone-screen" id="screen-capture">
+        <div class="p-title-row">
+          <h1 class="p-title">Patch</h1>
+          <div class="p-utility">
+            <a class="p-util-link">Triage</a>
+            <a class="p-util-link">Export</a>
+          </div>
+        </div>
+
+        <div class="p-capture-block">
+          <div class="p-pills-row">
+            <span class="p-pill tick">Tick</span>
+            <span class="p-pill break">Break</span>
+            <span class="p-pill tide">Tide</span>
+            <span class="p-pill still">Still</span>
+            <span class="p-pill course selected">Course</span>
+            <span class="p-pill patch">Patch</span>
+          </div>
+          <input class="p-input" placeholder="What's broken?" />
+          <div class="p-save-row">
+            <button class="p-save-btn">Save</button>
+          </div>
+        </div>
+
+        <div class="p-section-label">Recent</div>
+
+        <div class="p-fix-card">
+          <div class="p-fix-top">
+            <span class="p-app-tag course">Course</span>
+            <span class="p-status-chip open">Open</span>
+          </div>
+          <div class="p-fix-text">Goals strip doesn't collapse on iOS Safari</div>
+          <div class="p-fix-ts">2m ago</div>
+        </div>
+
+        <div class="p-fix-card">
+          <div class="p-fix-top">
+            <span class="p-app-tag tide">Tide</span>
+            <span class="p-status-chip open">Open</span>
+          </div>
+          <div class="p-fix-text">Water tab loses state on refresh</div>
+          <div class="p-fix-ts">1h ago</div>
+        </div>
+
+        <div class="p-fix-card">
+          <div class="p-fix-top">
+            <span class="p-app-tag still">Still</span>
+            <span class="p-status-chip doing">Doing</span>
+          </div>
+          <div class="p-fix-text">Edge nav labels overflow on small screens</div>
+          <div class="p-fix-ts">Yesterday</div>
+        </div>
+
+        <div class="p-fix-card">
+          <div class="p-fix-top">
+            <span class="p-app-tag break">Break</span>
+            <span class="p-status-chip done">Done</span>
+          </div>
+          <div class="p-fix-text">Mantras card overflows past 3 lines</div>
+          <div class="p-fix-ts">2d ago</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: TRIAGE -->
+      <div class="phone-screen hidden" id="screen-triage">
+        <div class="p-title-row">
+          <h1 class="p-title">Triage</h1>
+          <div class="p-utility">
+            <a class="p-util-link">Home</a>
+            <a class="p-util-link">Export</a>
+          </div>
+        </div>
+
+        <div class="p-filter-row">
+          <span class="p-filter-chip on">Open</span>
+          <span class="p-filter-chip on">Doing</span>
+          <span class="p-filter-chip">Done</span>
+          <span class="p-filter-chip">Won't</span>
+        </div>
+
+        <div class="p-triage-section">
+          <div class="p-triage-header">
+            <div>
+              <span class="p-triage-name">Course</span>
+              <span class="p-triage-count">5 open</span>
+            </div>
+            <span class="p-triage-chev">▾</span>
+          </div>
+          <div class="p-fix-card">
+            <div class="p-fix-top">
+              <span class="p-app-tag course">Course</span>
+              <span class="p-status-chip open">Open</span>
+            </div>
+            <div class="p-fix-text">Goals strip doesn't collapse on iOS Safari</div>
+          </div>
+          <div class="p-fix-card">
+            <div class="p-fix-top">
+              <span class="p-app-tag course">Course</span>
+              <span class="p-status-chip open">Open</span>
+            </div>
+            <div class="p-fix-text">Pillar dot color off for Slow Down Sunny</div>
+          </div>
+          <div class="p-fix-card">
+            <div class="p-fix-top">
+              <span class="p-app-tag course">Course</span>
+              <span class="p-status-chip doing">Doing</span>
+            </div>
+            <div class="p-fix-text">Morning Pulse skips Sunday</div>
+          </div>
+        </div>
+
+        <div class="p-triage-section">
+          <div class="p-triage-header">
+            <div>
+              <span class="p-triage-name">Tide</span>
+              <span class="p-triage-count">2 open</span>
+            </div>
+            <span class="p-triage-chev">▸</span>
+          </div>
+        </div>
+
+        <div class="p-triage-section">
+          <div class="p-triage-header">
+            <div>
+              <span class="p-triage-name">Still</span>
+              <span class="p-triage-count">1 doing</span>
+            </div>
+            <span class="p-triage-chev">▸</span>
+          </div>
+        </div>
+
+        <div class="p-triage-section">
+          <div class="p-triage-header">
+            <div>
+              <span class="p-triage-name">Tick</span>
+              <span class="p-triage-count">0</span>
+            </div>
+            <span class="p-triage-chev">▸</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: EXPORT -->
+      <div class="phone-screen hidden" id="screen-export">
+        <div class="p-title-row">
+          <h1 class="p-title">Export</h1>
+          <div class="p-utility">
+            <a class="p-util-link">Cancel</a>
+          </div>
+        </div>
+
+        <div class="p-export-section">
+          <div class="p-export-label">App</div>
+          <div class="p-pills-row">
+            <span class="p-pill tick">Tick</span>
+            <span class="p-pill break">Break</span>
+            <span class="p-pill tide">Tide</span>
+            <span class="p-pill still">Still</span>
+            <span class="p-pill course selected">Course</span>
+            <span class="p-pill patch">Patch</span>
+          </div>
+        </div>
+
+        <div class="p-export-section">
+          <div class="p-export-label">Status</div>
+          <div class="p-filter-row">
+            <span class="p-filter-chip on">Open</span>
+            <span class="p-filter-chip on">Doing</span>
+            <span class="p-filter-chip">Done</span>
+            <span class="p-filter-chip">Won't</span>
+          </div>
+        </div>
+
+        <div class="p-export-section">
+          <div class="p-export-label">Preview</div>
+          <div class="p-preview">Open fixes for Course (5):
+1. Goals strip doesn't collapse on iOS Safari
+2. Pillar dot color off for Slow Down Sunny
+3. Morning Pulse skips Sunday
+4. Next Moves panel — empty state copy too long
+5. Friday Close push to Still uses wrong date
+
+Review each, propose changes to course-spec.md, then implement.</div>
+        </div>
+
+        <div class="p-export-actions">
+          <button class="p-action-secondary">Plain list</button>
+          <button class="p-action-primary">Copy prompt</button>
+        </div>
+
+        <div class="p-after-export">Mark all as Doing after copy</div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="caption">Mockup reference for Claude Code. Static — no real interactions wired up beyond the tab switcher.</p>
+
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      var screen = tab.dataset.screen;
+      document.querySelectorAll('.phone-screen').forEach(function(s) { s.classList.add('hidden'); });
+      document.getElementById('screen-' + screen).classList.remove('hidden');
+    });
+  });
+</script>
+</body>
+</html>

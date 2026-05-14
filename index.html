@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#18181b" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#f4f4ee" media="(prefers-color-scheme: light)" />
+<link rel="manifest" href="./manifest.json" />
+<title>Patch</title>
+<style>
+  :root {
+    --bg: #18181b;
+    --bg-elevated: #232327;
+    --bg-nested: #2e2e32;
+    --border: #2e2e32;
+    --border-strong: #38383d;
+    --text: #e8e8e6;
+    --text-muted: #b4b2a9;
+    --text-faint: #888782;
+    --text-fainter: #5f5e5a;
+    --accent: #f5d547;
+    --accent-hover: #ffe066;
+
+    --tick: #a39cf0;
+    --break: #e8d4a8;
+    --tide: #85b7eb;
+    --still: #b4c89a;
+    --course: #d4995a;
+    --patch: #f5d547;
+
+    --layout-width: 440px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f4ee;
+      --bg-elevated: #ebebe2;
+      --bg-nested: #dedccf;
+      --border: #d4d2c4;
+      --border-strong: #b8b6a8;
+      --text: #1a1a1c;
+      --text-muted: #4a4a48;
+      --text-faint: #6e6c66;
+      --text-fainter: #8e8c84;
+      --accent: #c4a020;
+      --accent-hover: #a88a10;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  body {
+    max-width: var(--layout-width);
+    margin: 0 auto;
+    padding: 22px 18px 100px;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .util {
+    display: flex;
+    gap: 14px;
+  }
+  .util-link {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 13px;
+    padding: 4px 2px;
+    cursor: pointer;
+  }
+  .util-link:hover, .util-link:focus-visible {
+    color: var(--text-muted);
+    outline: none;
+  }
+
+  /* Capture block */
+  .capture {
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 22px;
+  }
+
+  .pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--bg-nested);
+    color: var(--text-muted);
+    border: 0.5px solid var(--border-strong);
+    cursor: pointer;
+    transition: background 0.12s, transform 0.05s;
+  }
+  .pill:active { transform: scale(0.96); }
+  .pill:hover { background: var(--border-strong); }
+  .pill.tick { color: var(--tick); }
+  .pill.break { color: var(--break); }
+  .pill.tide { color: var(--tide); }
+  .pill.still { color: var(--still); }
+  .pill.course { color: var(--course); }
+  .pill.patch { color: var(--patch); }
+
+  .pill.selected.tick { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
+  .pill.selected.break { background: var(--break); color: #1a1a1c; border-color: var(--break); }
+  .pill.selected.tide { background: var(--tide); color: #1a1a1c; border-color: var(--tide); }
+  .pill.selected.still { background: var(--still); color: #1a1a1c; border-color: var(--still); }
+  .pill.selected.course { background: var(--course); color: #1a1a1c; border-color: var(--course); }
+  .pill.selected.patch { background: var(--patch); color: #1a1a1c; border-color: var(--patch); }
+
+  .input {
+    width: 100%;
+    background: var(--bg);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    min-height: 44px;
+    line-height: 1.4;
+  }
+  .input::placeholder { color: var(--text-fainter); }
+  .input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .save-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .save-btn {
+    background: var(--accent);
+    color: #1a1a1c;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.12s, opacity 0.12s;
+  }
+  .save-btn:hover { background: var(--accent-hover); }
+  .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Section label */
+  .section-label {
+    font-size: 10px;
+    color: var(--text-fainter);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+
+  /* Fix card */
+  .fix-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .fix {
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .fix:hover { background: var(--bg-nested); }
+  .fix.editing {
+    background: var(--bg-nested);
+    border-color: var(--border-strong);
+    cursor: default;
+  }
+
+  .fix-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .app-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--bg-nested);
+    text-transform: capitalize;
+  }
+  .app-tag.tick { color: var(--tick); }
+  .app-tag.break { color: var(--break); }
+  .app-tag.tide { color: var(--tide); }
+  .app-tag.still { color: var(--still); }
+  .app-tag.course { color: var(--course); }
+  .app-tag.patch { color: var(--patch); }
+
+  .status-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  .status-chip.open { background: rgba(245, 213, 71, 0.15); color: var(--accent); }
+  .status-chip.doing { background: rgba(133, 183, 235, 0.15); color: var(--tide); }
+  .status-chip.done { background: rgba(180, 200, 154, 0.15); color: var(--still); }
+  .status-chip.wont { background: rgba(95, 94, 90, 0.25); color: var(--text-faint); text-decoration: line-through; }
+
+  .fix-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.45;
+    margin-bottom: 6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .fix-text.wont { color: var(--text-fainter); text-decoration: line-through; }
+  .fix-ts {
+    font-size: 11px;
+    color: var(--text-fainter);
+  }
+
+  /* Editing state */
+  .fix-edit-text {
+    width: 100%;
+    background: var(--bg);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.45;
+    resize: vertical;
+    min-height: 60px;
+    margin-bottom: 10px;
+  }
+  .fix-edit-text:focus { outline: none; border-color: var(--accent); }
+
+  .fix-edit-status {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .status-pick {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 0.5px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+  .status-pick:hover { color: var(--text); }
+  .status-pick.on.open { background: rgba(245, 213, 71, 0.2); color: var(--accent); border-color: var(--accent); }
+  .status-pick.on.doing { background: rgba(133, 183, 235, 0.2); color: var(--tide); border-color: var(--tide); }
+  .status-pick.on.done { background: rgba(180, 200, 154, 0.2); color: var(--still); border-color: var(--still); }
+  .status-pick.on.wont { background: rgba(95, 94, 90, 0.3); color: var(--text-muted); border-color: var(--border-strong); }
+
+  .fix-edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .fix-edit-actions .left, .fix-edit-actions .right {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-text {
+    background: transparent;
+    border: none;
+    color: var(--text-faint);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  .btn-text:hover { color: var(--text); background: var(--border); }
+  .btn-text.danger { color: #e57373; }
+  .btn-text.danger:hover { color: #ff8a8a; background: rgba(229, 115, 115, 0.1); }
+  .btn-primary {
+    background: var(--accent);
+    color: #1a1a1c;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    color: var(--text-fainter);
+    font-size: 14px;
+    padding: 40px 20px;
+  }
+
+  /* Triage */
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    color: var(--text-faint);
+    border: 0.5px solid var(--border);
+    cursor: pointer;
+  }
+  .filter-chip:hover { color: var(--text-muted); }
+  .filter-chip.on { background: var(--bg-nested); color: var(--text); border-color: var(--border-strong); }
+
+  .triage-section { margin-bottom: 12px; }
+  .triage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .triage-header:hover { background: var(--bg-nested); }
+  .triage-name {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  .triage-name.tick { color: var(--tick); }
+  .triage-name.break { color: var(--break); }
+  .triage-name.tide { color: var(--tide); }
+  .triage-name.still { color: var(--still); }
+  .triage-name.course { color: var(--course); }
+  .triage-name.patch { color: var(--patch); }
+  .triage-count {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-left: 8px;
+    font-weight: 400;
+  }
+  .triage-chev {
+    color: var(--text-fainter);
+    font-size: 12px;
+    transition: transform 0.15s;
+  }
+  .triage-section.open .triage-chev { transform: rotate(90deg); }
+  .triage-fixes {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 2px 4px;
+  }
+  .triage-section.open .triage-fixes { display: flex; }
+
+  /* Export */
+  .export-section { margin-bottom: 20px; }
+  .export-label {
+    font-size: 10px;
+    color: var(--text-fainter);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+  .preview {
+    background: var(--bg);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    white-space: pre-wrap;
+    max-height: 240px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+  }
+  .preview.empty-state {
+    color: var(--text-fainter);
+    font-family: inherit;
+    font-size: 13px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .format-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .format-btn {
+    flex: 1;
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .format-btn.on {
+    background: var(--bg-nested);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+
+  .export-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .action-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #1a1a1c;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .action-primary:hover { background: var(--accent-hover); }
+  .action-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .action-secondary {
+    flex: 1;
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .action-secondary:hover { background: var(--bg-nested); }
+  .action-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--border-strong);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 100;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- CAPTURE VIEW -->
+<div class="view active" id="view-capture">
+  <header class="header">
+    <h1 class="title">Patch</h1>
+    <div class="util">
+      <button class="util-link" data-go="triage">Triage</button>
+      <button class="util-link" data-go="export">Export</button>
+    </div>
+  </header>
+
+  <div class="capture">
+    <div class="pills-row" id="capture-pills"></div>
+    <textarea class="input" id="capture-input" placeholder="What's broken?" rows="1"></textarea>
+    <div class="save-row">
+      <button class="save-btn" id="capture-save" disabled>Save</button>
+    </div>
+  </div>
+
+  <div class="section-label">Recent</div>
+  <div class="fix-list" id="capture-list"></div>
+</div>
+
+<!-- TRIAGE VIEW -->
+<div class="view" id="view-triage">
+  <header class="header">
+    <h1 class="title">Triage</h1>
+    <div class="util">
+      <button class="util-link" data-go="capture">Home</button>
+      <button class="util-link" data-go="export">Export</button>
+    </div>
+  </header>
+
+  <div class="filter-row" id="triage-filters"></div>
+  <div id="triage-body"></div>
+</div>
+
+<!-- EXPORT VIEW -->
+<div class="view" id="view-export">
+  <header class="header">
+    <h1 class="title">Export</h1>
+    <div class="util">
+      <button class="util-link" data-go="capture">Cancel</button>
+    </div>
+  </header>
+
+  <div class="export-section">
+    <div class="export-label">App</div>
+    <div class="pills-row" id="export-pills"></div>
+  </div>
+
+  <div class="export-section">
+    <div class="export-label">Status</div>
+    <div class="filter-row" id="export-filters"></div>
+  </div>
+
+  <div class="export-section">
+    <div class="export-label">Format</div>
+    <div class="format-toggle">
+      <button class="format-btn on" data-format="prompt">Claude Code prompt</button>
+      <button class="format-btn" data-format="plain">Plain list</button>
+    </div>
+    <div class="preview" id="export-preview"></div>
+  </div>
+
+  <div class="export-actions">
+    <button class="action-secondary" id="export-mark-doing">Mark all as Doing</button>
+    <button class="action-primary" id="export-copy">Copy</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // — Supabase config (shared project with the rest of the suite) —
+  const SB_URL = 'https://xsmnfcmtbpeaccnyinkr.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzbW5mY210YnBlYWNjbnlpbmtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzODQ3MjksImV4cCI6MjA5Mzk2MDcyOX0.flUt1SAkkt1ppcKCR2XnPKbAaS4PjCLMzi3Gu08jVWo';
+
+  async function sbFetch(path, opts = {}) {
+    const url = `${SB_URL}/rest/v1${path}`;
+    const headers = {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    };
+    if (opts.method && opts.method !== 'GET') headers['Prefer'] = 'return=representation';
+    const res = await fetch(url, { ...opts, headers });
+    if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  }
+
+  // — Constants —
+  const APPS = ['tick', 'break', 'tide', 'still', 'course', 'patch'];
+  const APP_LABEL = { tick: 'Tick', break: 'Break', tide: 'Tide', still: 'Still', course: 'Course', patch: 'Patch' };
+  const STATUSES = ['open', 'doing', 'done', 'wont'];
+  const STATUS_LABEL = { open: 'Open', doing: 'Doing', done: 'Done', wont: "Won't" };
+
+  // — State —
+  const state = {
+    view: 'capture',
+    patches: [],
+    lastApp: localStorage.getItem('patch_last_app') || 'course',
+    captureSelected: null,
+    editingId: null,
+    triageOpenSections: new Set(),
+    triageFilters: new Set(['open', 'doing']),
+    exportApp: null,
+    exportFilters: new Set(['open', 'doing']),
+    exportFormat: 'prompt',
+  };
+  state.captureSelected = state.lastApp;
+
+  // — DOM helpers —
+  const $ = (sel) => document.querySelector(sel);
+  const el = (tag, attrs = {}, ...children) => {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') node.className = v;
+      else if (k === 'dataset') Object.assign(node.dataset, v);
+      else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else if (k === 'html') node.innerHTML = v;
+      else if (v !== null && v !== undefined) node.setAttribute(k, v);
+    }
+    for (const c of children) {
+      if (c === null || c === undefined) continue;
+      node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return node;
+  };
+
+  function formatTimestamp(iso) {
+    const then = new Date(iso);
+    const now = new Date();
+    const diff = (now - then) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 86400 * 2) return 'Yesterday';
+    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+    return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function showToast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // — Navigation —
+  function go(view) {
+    state.view = view;
+    state.editingId = null;
+    document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+    $(`#view-${view}`).classList.add('active');
+    window.scrollTo(0, 0);
+    if (view === 'capture') {
+      renderCapture();
+      setTimeout(() => $('#capture-input').focus(), 50);
+    }
+    if (view === 'triage') renderTriage();
+    if (view === 'export') renderExport();
+  }
+
+  document.querySelectorAll('[data-go]').forEach((btn) => {
+    btn.addEventListener('click', () => go(btn.dataset.go));
+  });
+
+  // — Data —
+  async function loadPatches() {
+    try {
+      state.patches = await sbFetch('/patches?select=*&order=created_at.desc') || [];
+    } catch (err) {
+      console.error('Load failed:', err);
+      showToast('Load failed — check connection');
+      state.patches = [];
+    }
+  }
+
+  async function savePatch(app, text) {
+    const row = await sbFetch('/patches', {
+      method: 'POST',
+      body: JSON.stringify({ app, text }),
+    });
+    const inserted = Array.isArray(row) ? row[0] : row;
+    if (inserted) state.patches.unshift(inserted);
+    return inserted;
+  }
+
+  async function updatePatch(id, fields) {
+    const row = await sbFetch(`/patches?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(fields),
+    });
+    const updated = Array.isArray(row) ? row[0] : row;
+    if (updated) {
+      const idx = state.patches.findIndex((p) => p.id === id);
+      if (idx >= 0) state.patches[idx] = updated;
+    }
+    return updated;
+  }
+
+  async function deletePatch(id) {
+    await sbFetch(`/patches?id=eq.${id}`, { method: 'DELETE' });
+    state.patches = state.patches.filter((p) => p.id !== id);
+  }
+
+  // — Capture view —
+  function renderCapturePills() {
+    const row = $('#capture-pills');
+    row.innerHTML = '';
+    APPS.forEach((app) => {
+      const pill = el('button', {
+        class: `pill ${app}${state.captureSelected === app ? ' selected' : ''}`,
+        onclick: () => {
+          state.captureSelected = app;
+          renderCapturePills();
+        },
+      }, APP_LABEL[app]);
+      row.appendChild(pill);
+    });
+  }
+
+  function renderCaptureList() {
+    const list = $('#capture-list');
+    list.innerHTML = '';
+    if (!state.patches.length) {
+      list.appendChild(el('div', { class: 'empty' }, 'Nothing to fix.'));
+      return;
+    }
+    state.patches.slice(0, 30).forEach((p) => list.appendChild(renderFixCard(p)));
+  }
+
+  function renderCapture() {
+    renderCapturePills();
+    renderCaptureList();
+    const input = $('#capture-input');
+    const save = $('#capture-save');
+    save.disabled = !input.value.trim();
+  }
+
+  // — Fix card (shared by capture + triage) —
+  function renderFixCard(p) {
+    if (state.editingId === p.id) return renderFixEditing(p);
+
+    const card = el('div', { class: 'fix', dataset: { id: p.id } });
+    card.appendChild(el('div', { class: 'fix-top' },
+      el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
+      el('span', { class: `status-chip ${p.status}` }, STATUS_LABEL[p.status]),
+    ));
+    card.appendChild(el('div', { class: `fix-text${p.status === 'wont' ? ' wont' : ''}` }, p.text));
+    card.appendChild(el('div', { class: 'fix-ts' }, formatTimestamp(p.created_at)));
+
+    card.addEventListener('click', () => {
+      state.editingId = p.id;
+      rerenderCurrentView();
+    });
+    return card;
+  }
+
+  function renderFixEditing(p) {
+    const card = el('div', { class: 'fix editing', dataset: { id: p.id } });
+    card.appendChild(el('div', { class: 'fix-top' },
+      el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
+      el('span', { class: 'fix-ts' }, formatTimestamp(p.created_at)),
+    ));
+    const textarea = el('textarea', { class: 'fix-edit-text' });
+    textarea.value = p.text;
+    card.appendChild(textarea);
+
+    const statusRow = el('div', { class: 'fix-edit-status' });
+    let currentStatus = p.status;
+    STATUSES.forEach((s) => {
+      const btn = el('button', {
+        class: `status-pick ${s}${currentStatus === s ? ' on' : ''}`,
+        onclick: () => {
+          currentStatus = s;
+          statusRow.querySelectorAll('.status-pick').forEach((b) => {
+            b.classList.toggle('on', b.dataset.status === s);
+          });
+        },
+        dataset: { status: s },
+      }, STATUS_LABEL[s]);
+      statusRow.appendChild(btn);
+    });
+    card.appendChild(statusRow);
+
+    const actions = el('div', { class: 'fix-edit-actions' });
+    const left = el('div', { class: 'left' },
+      el('button', {
+        class: 'btn-text danger',
+        onclick: async () => {
+          if (!confirm('Delete this fix?')) return;
+          try {
+            await deletePatch(p.id);
+            state.editingId = null;
+            rerenderCurrentView();
+          } catch (err) {
+            showToast('Delete failed');
+          }
+        },
+      }, 'Delete'),
+    );
+    const right = el('div', { class: 'right' },
+      el('button', {
+        class: 'btn-text',
+        onclick: () => {
+          state.editingId = null;
+          rerenderCurrentView();
+        },
+      }, 'Cancel'),
+      el('button', {
+        class: 'btn-primary',
+        onclick: async () => {
+          const newText = textarea.value.trim();
+          if (!newText) { showToast('Text required'); return; }
+          const fields = {};
+          if (newText !== p.text) fields.text = newText;
+          if (currentStatus !== p.status) fields.status = currentStatus;
+          if (Object.keys(fields).length === 0) {
+            state.editingId = null;
+            rerenderCurrentView();
+            return;
+          }
+          try {
+            await updatePatch(p.id, fields);
+            state.editingId = null;
+            rerenderCurrentView();
+          } catch (err) {
+            showToast('Save failed');
+          }
+        },
+      }, 'Save'),
+    );
+    actions.appendChild(left);
+    actions.appendChild(right);
+    card.appendChild(actions);
+
+    setTimeout(() => textarea.focus(), 20);
+    return card;
+  }
+
+  function rerenderCurrentView() {
+    if (state.view === 'capture') renderCaptureList();
+    if (state.view === 'triage') renderTriage();
+  }
+
+  // — Capture save handler —
+  $('#capture-input').addEventListener('input', (e) => {
+    $('#capture-save').disabled = !e.target.value.trim();
+  });
+  $('#capture-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      $('#capture-save').click();
+    }
+  });
+  $('#capture-save').addEventListener('click', async () => {
+    const input = $('#capture-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const app = state.captureSelected;
+    $('#capture-save').disabled = true;
+    try {
+      await savePatch(app, text);
+      state.lastApp = app;
+      localStorage.setItem('patch_last_app', app);
+      input.value = '';
+      renderCaptureList();
+      input.focus();
+    } catch (err) {
+      showToast('Save failed');
+    } finally {
+      $('#capture-save').disabled = !input.value.trim();
+    }
+  });
+
+  // — Triage view —
+  function renderTriage() {
+    const filters = $('#triage-filters');
+    filters.innerHTML = '';
+    STATUSES.forEach((s) => {
+      filters.appendChild(el('button', {
+        class: `filter-chip${state.triageFilters.has(s) ? ' on' : ''}`,
+        onclick: () => {
+          if (state.triageFilters.has(s)) state.triageFilters.delete(s);
+          else state.triageFilters.add(s);
+          renderTriage();
+        },
+      }, STATUS_LABEL[s]));
+    });
+
+    const body = $('#triage-body');
+    body.innerHTML = '';
+
+    const counts = {};
+    APPS.forEach((a) => { counts[a] = { open: 0, doing: 0, done: 0, wont: 0, total: 0, fixes: [] }; });
+    state.patches.forEach((p) => {
+      counts[p.app][p.status]++;
+      counts[p.app].total++;
+      if (state.triageFilters.has(p.status)) counts[p.app].fixes.push(p);
+    });
+
+    const sorted = APPS.slice().sort((a, b) => {
+      const ao = counts[a].open + counts[a].doing;
+      const bo = counts[b].open + counts[b].doing;
+      if (bo !== ao) return bo - ao;
+      return APPS.indexOf(a) - APPS.indexOf(b);
+    });
+
+    sorted.forEach((app) => {
+      const c = counts[app];
+      const section = el('div', { class: `triage-section${state.triageOpenSections.has(app) ? ' open' : ''}` });
+      const summary = summaryText(c);
+      const header = el('div', { class: 'triage-header', onclick: () => {
+        if (state.triageOpenSections.has(app)) state.triageOpenSections.delete(app);
+        else state.triageOpenSections.add(app);
+        renderTriage();
+      }},
+        el('div', {},
+          el('span', { class: `triage-name ${app}` }, APP_LABEL[app]),
+          el('span', { class: 'triage-count' }, summary),
+        ),
+        el('span', { class: 'triage-chev' }, '▸'),
+      );
+      section.appendChild(header);
+
+      const fixesWrap = el('div', { class: 'triage-fixes' });
+      if (c.fixes.length === 0) {
+        fixesWrap.appendChild(el('div', { class: 'empty', html: 'Nothing matching the filter.' }));
+      } else {
+        c.fixes.forEach((p) => fixesWrap.appendChild(renderFixCard(p)));
+      }
+      section.appendChild(fixesWrap);
+      body.appendChild(section);
+    });
+  }
+
+  function summaryText(c) {
+    const parts = [];
+    if (c.open) parts.push(`${c.open} open`);
+    if (c.doing) parts.push(`${c.doing} doing`);
+    if (!parts.length) {
+      if (c.total === 0) return '0';
+      const done = c.done + c.wont;
+      if (done) return `${done} closed`;
+    }
+    return parts.join(' · ');
+  }
+
+  // — Export view —
+  function renderExport() {
+    if (!state.exportApp) state.exportApp = state.lastApp;
+
+    const pills = $('#export-pills');
+    pills.innerHTML = '';
+    APPS.forEach((app) => {
+      pills.appendChild(el('button', {
+        class: `pill ${app}${state.exportApp === app ? ' selected' : ''}`,
+        onclick: () => { state.exportApp = app; renderExport(); },
+      }, APP_LABEL[app]));
+    });
+
+    const filters = $('#export-filters');
+    filters.innerHTML = '';
+    STATUSES.forEach((s) => {
+      filters.appendChild(el('button', {
+        class: `filter-chip${state.exportFilters.has(s) ? ' on' : ''}`,
+        onclick: () => {
+          if (state.exportFilters.has(s)) state.exportFilters.delete(s);
+          else state.exportFilters.add(s);
+          renderExport();
+        },
+      }, STATUS_LABEL[s]));
+    });
+
+    document.querySelectorAll('.format-btn').forEach((b) => {
+      b.classList.toggle('on', b.dataset.format === state.exportFormat);
+      b.onclick = () => { state.exportFormat = b.dataset.format; renderExport(); };
+    });
+
+    const matches = state.patches
+      .filter((p) => p.app === state.exportApp && state.exportFilters.has(p.status))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    const preview = $('#export-preview');
+    preview.classList.remove('empty-state');
+    if (!matches.length) {
+      preview.classList.add('empty-state');
+      preview.textContent = 'No matching fixes.';
+    } else {
+      preview.textContent = buildExportText(matches);
+    }
+
+    $('#export-copy').disabled = !matches.length;
+    $('#export-mark-doing').disabled = !matches.some((p) => p.status === 'open');
+  }
+
+  function buildExportText(matches) {
+    const app = state.exportApp;
+    if (state.exportFormat === 'plain') {
+      return matches.map((p) => `- ${p.text}`).join('\n');
+    }
+    const onlyOpen = state.exportFilters.size === 1 && state.exportFilters.has('open');
+    const header = onlyOpen
+      ? `Open fixes for ${APP_LABEL[app]} (${matches.length}):`
+      : `Fixes for ${APP_LABEL[app]} (${matches.length}):`;
+    const lines = matches.map((p, i) => `${i + 1}. ${p.text}`);
+    return [
+      header,
+      ...lines,
+      '',
+      `Review each, propose changes to ${app}-spec.md, then implement.`,
+    ].join('\n');
+  }
+
+  $('#export-copy').addEventListener('click', async () => {
+    const matches = state.patches
+      .filter((p) => p.app === state.exportApp && state.exportFilters.has(p.status))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    if (!matches.length) return;
+    const text = buildExportText(matches);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(`Copied — ${matches.length} ${matches.length === 1 ? 'fix' : 'fixes'}`);
+    } catch (err) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(`Copied — ${matches.length} ${matches.length === 1 ? 'fix' : 'fixes'}`);
+    }
+  });
+
+  $('#export-mark-doing').addEventListener('click', async () => {
+    const openIds = state.patches
+      .filter((p) => p.app === state.exportApp && p.status === 'open')
+      .map((p) => p.id);
+    if (!openIds.length) return;
+    try {
+      const idList = openIds.map((id) => `"${id}"`).join(',');
+      await sbFetch(`/patches?id=in.(${idList})`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'doing' }),
+      });
+      state.patches.forEach((p) => {
+        if (openIds.includes(p.id)) p.status = 'doing';
+      });
+      showToast(`Marked ${openIds.length} as Doing`);
+      renderExport();
+    } catch (err) {
+      showToast('Update failed');
+    }
+  });
+
+  // — Init —
+  (async function init() {
+    await loadPatches();
+    go('capture');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "Patch",
+  "short_name": "Patch",
+  "description": "Fix capture across the suite — log it, organize by app, hand off to Claude Code.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#f5d547",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='38' fill='%2318181b'/><rect x='44' y='44' width='104' height='104' rx='16' fill='%23f5d547' transform='rotate(45 96 96)'/><rect x='84' y='52' width='24' height='88' rx='4' fill='%2318181b'/><rect x='52' y='84' width='88' height='24' rx='4' fill='%2318181b'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='102' fill='%2318181b'/><rect x='118' y='118' width='276' height='276' rx='42' fill='%23f5d547' transform='rotate(45 256 256)'/><rect x='224' y='140' width='64' height='232' rx='10' fill='%2318181b'/><rect x='140' y='224' width='232' height='64' rx='10' fill='%2318181b'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
