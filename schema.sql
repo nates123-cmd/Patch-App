@@ -4,7 +4,7 @@
 
 create table patches (
   id uuid primary key default gen_random_uuid(),
-  app text not null check (app in ('tick','break','tide','still','course','patch')),
+  app text not null check (app in ('tick','break','tide','still','course','patch','amanda')),
   text text not null,
   status text not null default 'open' check (status in ('open','doing','done','wont')),
   created_at timestamptz not null default now(),
