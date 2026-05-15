@@ -573,7 +573,7 @@
   </div>
 
   <div class="export-actions">
-    <button class="action-secondary" id="export-mark-doing">Mark all as Doing</button>
+    <button class="action-secondary" id="export-mark-bulk">Mark all as Doing</button>
     <button class="action-primary" id="export-copy">Copy</button>
   </div>
 </div>
@@ -736,11 +736,12 @@
   function renderCaptureList() {
     const list = $('#capture-list');
     list.innerHTML = '';
-    if (!state.patches.length) {
+    const open = state.patches.filter((p) => p.status === 'open');
+    if (!open.length) {
       list.appendChild(el('div', { class: 'empty' }, 'Nothing to fix.'));
       return;
     }
-    state.patches.slice(0, 30).forEach((p) => list.appendChild(renderFixCard(p)));
+    open.slice(0, 30).forEach((p) => list.appendChild(renderFixCard(p)));
   }
 
   function renderCapture() {
@@ -1005,7 +1006,23 @@
     }
 
     $('#export-copy').disabled = !matches.length;
-    $('#export-mark-doing').disabled = !matches.some((p) => p.status === 'open');
+
+    const bulk = $('#export-mark-bulk');
+    const hasOpen = matches.some((p) => p.status === 'open');
+    const hasDoing = matches.some((p) => p.status === 'doing');
+    if (hasOpen) {
+      bulk.textContent = 'Mark all as Doing';
+      bulk.dataset.mode = 'doing';
+      bulk.disabled = false;
+    } else if (hasDoing) {
+      bulk.textContent = 'Mark all as Done';
+      bulk.dataset.mode = 'done';
+      bulk.disabled = false;
+    } else {
+      bulk.textContent = 'Mark all as Doing';
+      bulk.dataset.mode = 'doing';
+      bulk.disabled = true;
+    }
   }
 
   function buildExportText(matches) {
@@ -1046,21 +1063,25 @@
     }
   });
 
-  $('#export-mark-doing').addEventListener('click', async () => {
-    const openIds = state.patches
-      .filter((p) => p.app === state.exportApp && p.status === 'open')
+  $('#export-mark-bulk').addEventListener('click', async () => {
+    const mode = $('#export-mark-bulk').dataset.mode || 'doing';
+    const fromStatus = mode === 'done' ? 'doing' : 'open';
+    const toStatus = mode === 'done' ? 'done' : 'doing';
+    const toLabel = mode === 'done' ? 'Done' : 'Doing';
+    const ids = state.patches
+      .filter((p) => p.app === state.exportApp && p.status === fromStatus)
       .map((p) => p.id);
-    if (!openIds.length) return;
+    if (!ids.length) return;
     try {
-      const idList = openIds.map((id) => `"${id}"`).join(',');
+      const idList = ids.map((id) => `"${id}"`).join(',');
       await sbFetch(`/patches?id=in.(${idList})`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'doing' }),
+        body: JSON.stringify({ status: toStatus }),
       });
       state.patches.forEach((p) => {
-        if (openIds.includes(p.id)) p.status = 'doing';
+        if (ids.includes(p.id)) p.status = toStatus;
       });
-      showToast(`Marked ${openIds.length} as Doing`);
+      showToast(`Marked ${ids.length} as ${toLabel}`);
       renderExport();
     } catch (err) {
       showToast('Update failed');
