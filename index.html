@@ -149,6 +149,30 @@
   .pill.selected.course { background: var(--course); color: #1a1a1c; border-color: var(--course); }
   .pill.selected.patch { background: var(--patch); color: #1a1a1c; border-color: var(--patch); }
   .pill.selected.amanda { background: var(--amanda); color: #1a1a1c; border-color: var(--amanda); }
+  .pill.all { color: var(--text-muted); }
+  .pill.selected.all { background: var(--text-muted); color: var(--bg); border-color: var(--text-muted); }
+
+  /* Bug / Idea type toggle */
+  .type-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .type-pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--bg-nested);
+    color: var(--text-muted);
+    border: 0.5px solid var(--border-strong);
+    cursor: pointer;
+    transition: background 0.12s, transform 0.05s;
+  }
+  .type-pill:active { transform: scale(0.96); }
+  .type-pill:hover { background: var(--border-strong); }
+  .type-pill.on.bug { background: var(--accent); color: #1a1a1c; border-color: var(--accent); }
+  .type-pill.on.idea { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
 
   .input {
     width: 100%;
@@ -222,6 +246,12 @@
     gap: 8px;
     margin-bottom: 6px;
   }
+  .fix-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
   .app-tag {
     font-size: 10px;
     font-weight: 600;
@@ -237,6 +267,16 @@
   .app-tag.course { color: var(--course); }
   .app-tag.patch { color: var(--patch); }
   .app-tag.amanda { color: var(--amanda); }
+  .app-tag.all { color: var(--text-muted); }
+
+  .type-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--bg-nested);
+    color: var(--tick);
+  }
 
   .status-chip {
     font-size: 10px;
@@ -390,6 +430,7 @@
   .triage-name.course { color: var(--course); }
   .triage-name.patch { color: var(--patch); }
   .triage-name.amanda { color: var(--amanda); }
+  .triage-name.all { color: var(--text-muted); }
   .triage-count {
     font-size: 12px;
     color: var(--text-faint);
@@ -550,6 +591,7 @@
 
   <div class="capture">
     <div class="pills-row" id="capture-pills"></div>
+    <div class="type-row" id="capture-types"></div>
     <textarea class="input" id="capture-input" placeholder="What's broken?" rows="1"></textarea>
     <div class="save-row">
       <button class="save-btn" id="capture-save" disabled>Save</button>
@@ -647,10 +689,13 @@
   }
 
   // — Constants —
-  const APPS = ['tick', 'break', 'tide', 'still', 'course', 'patch', 'amanda'];
-  const APP_LABEL = { tick: 'Tick', break: 'Break', tide: 'Tide', still: 'Still', course: 'Course', patch: 'Patch', amanda: 'Amanda' };
+  const APPS = ['tick', 'break', 'tide', 'still', 'course', 'patch', 'amanda', 'all'];
+  const APP_LABEL = { tick: 'Tick', break: 'Break', tide: 'Tide', still: 'Still', course: 'Course', patch: 'Patch', amanda: 'Amanda', all: 'All' };
   const STATUSES = ['open', 'doing', 'done', 'wont'];
   const STATUS_LABEL = { open: 'Open', doing: 'Doing', done: 'Done', wont: "Won't" };
+  const TYPES = ['bug', 'idea'];
+  const TYPE_LABEL = { bug: 'Bug', idea: 'Idea' };
+  const patchType = (p) => p.type || 'bug';
 
   // — State —
   const state = {
@@ -658,6 +703,7 @@
     patches: [],
     lastApp: localStorage.getItem('patch_last_app') || 'course',
     captureSelected: null,
+    captureType: 'bug',
     editingId: null,
     triageOpenSections: new Set(),
     triageFilters: new Set(['open', 'doing']),
@@ -750,10 +796,10 @@
     }
   }
 
-  async function savePatch(app, text) {
+  async function savePatch(app, text, type) {
     const row = await sbFetch('/patches', {
       method: 'POST',
-      body: JSON.stringify({ app, text }),
+      body: JSON.stringify({ app, text, type }),
     });
     const inserted = Array.isArray(row) ? row[0] : row;
     if (inserted) state.patches.unshift(inserted);
@@ -785,6 +831,7 @@
         id: row.id,
         app: row.app,
         text: row.text,
+        type: patchType(row),
         status: row.status,
         created_at: row.created_at,
       }),
@@ -845,6 +892,20 @@
     });
   }
 
+  function renderCaptureTypes() {
+    const row = $('#capture-types');
+    row.innerHTML = '';
+    TYPES.forEach((t) => {
+      row.appendChild(el('button', {
+        class: `type-pill ${t}${state.captureType === t ? ' on' : ''}`,
+        onclick: () => {
+          state.captureType = t;
+          renderCaptureTypes();
+        },
+      }, TYPE_LABEL[t]));
+    });
+  }
+
   function renderCaptureList() {
     const list = $('#capture-list');
     list.innerHTML = '';
@@ -858,6 +919,7 @@
 
   function renderCapture() {
     renderCapturePills();
+    renderCaptureTypes();
     renderCaptureList();
     const input = $('#capture-input');
     const save = $('#capture-save');
@@ -870,7 +932,10 @@
 
     const card = el('div', { class: 'fix', dataset: { id: p.id } });
     card.appendChild(el('div', { class: 'fix-top' },
-      el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
+      el('div', { class: 'fix-left' },
+        el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
+        patchType(p) === 'idea' ? el('span', { class: 'type-tag idea' }, 'Idea') : null,
+      ),
       el('span', { class: `status-chip ${p.status}` }, STATUS_LABEL[p.status]),
     ));
     card.appendChild(el('div', { class: `fix-text${p.status === 'wont' ? ' wont' : ''}` }, p.text));
@@ -892,6 +957,23 @@
     const textarea = el('textarea', { class: 'fix-edit-text' });
     textarea.value = p.text;
     card.appendChild(textarea);
+
+    const typeRow = el('div', { class: 'type-row' });
+    let currentType = patchType(p);
+    TYPES.forEach((t) => {
+      const btn = el('button', {
+        class: `type-pill ${t}${currentType === t ? ' on' : ''}`,
+        onclick: () => {
+          currentType = t;
+          typeRow.querySelectorAll('.type-pill').forEach((b) => {
+            b.classList.toggle('on', b.dataset.type === t);
+          });
+        },
+        dataset: { type: t },
+      }, TYPE_LABEL[t]);
+      typeRow.appendChild(btn);
+    });
+    card.appendChild(typeRow);
 
     const statusRow = el('div', { class: 'fix-edit-status' });
     let currentStatus = p.status;
@@ -933,6 +1015,7 @@
           const fields = {};
           if (newText !== p.text) fields.text = newText;
           if (currentStatus !== p.status) fields.status = currentStatus;
+          if (currentType !== patchType(p)) fields.type = currentType;
           if (Object.keys(fields).length === 0) {
             state.editingId = null;
             rerenderCurrentView();
@@ -977,12 +1060,15 @@
     const text = input.value.trim();
     if (!text) return;
     const app = state.captureSelected;
+    const type = state.captureType;
     $('#capture-save').disabled = true;
     try {
-      await savePatch(app, text);
+      await savePatch(app, text, type);
       state.lastApp = app;
       localStorage.setItem('patch_last_app', app);
       input.value = '';
+      state.captureType = 'bug';
+      renderCaptureTypes();
       renderCaptureList();
       input.focus();
     } catch (err) {
@@ -1110,9 +1196,7 @@
       b.onclick = () => { state.exportFormat = b.dataset.format; renderExport(); };
     });
 
-    const matches = state.patches
-      .filter((p) => p.app === state.exportApp && state.exportFilters.has(p.status))
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const matches = exportMatches();
 
     const preview = $('#export-preview');
     preview.classList.remove('empty-state');
@@ -1143,28 +1227,59 @@
     }
   }
 
+  function exportMatches() {
+    return state.patches
+      .filter((p) => (state.exportApp === 'all' || p.app === state.exportApp) && state.exportFilters.has(p.status))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+
+  // Numbered list; splits into Bugs/Ideas groups only when both are present.
+  function promptGroup(items) {
+    const bugs = items.filter((p) => patchType(p) === 'bug');
+    const ideas = items.filter((p) => patchType(p) === 'idea');
+    if (bugs.length && ideas.length) {
+      const lines = [`Bugs (${bugs.length}):`];
+      bugs.forEach((p, i) => lines.push(`${i + 1}. ${p.text}`));
+      lines.push('', `Ideas (${ideas.length}):`);
+      ideas.forEach((p, i) => lines.push(`${i + 1}. ${p.text}`));
+      return lines.join('\n');
+    }
+    return items.map((p, i) => `${i + 1}. ${p.text}`).join('\n');
+  }
+
   function buildExportText(matches) {
-    const app = state.exportApp;
     if (state.exportFormat === 'plain') {
       return matches.map((p) => `- ${p.text}`).join('\n');
     }
     const onlyOpen = state.exportFilters.size === 1 && state.exportFilters.has('open');
-    const header = onlyOpen
-      ? `Open fixes for ${APP_LABEL[app]} (${matches.length}):`
-      : `Fixes for ${APP_LABEL[app]} (${matches.length}):`;
-    const lines = matches.map((p, i) => `${i + 1}. ${p.text}`);
-    return [
-      header,
-      ...lines,
-      '',
-      `Review each, propose changes to ${app}-spec.md, then implement.`,
-    ].join('\n');
+    const lead = onlyOpen ? 'Open fixes' : 'Fixes';
+
+    if (state.exportApp === 'all') {
+      const blocks = [];
+      APPS.forEach((app) => {
+        const items = matches.filter((p) => p.app === app);
+        if (items.length) blocks.push(`### ${APP_LABEL[app]} (${items.length})\n${promptGroup(items)}`);
+      });
+      return [
+        `${lead} across the suite (${matches.length}):`,
+        '',
+        blocks.join('\n\n'),
+        '',
+        "Review each, propose changes to the relevant app's spec, then implement.",
+      ].join('\n');
+    }
+
+    const app = state.exportApp;
+    const hasBoth = matches.some((p) => patchType(p) === 'bug')
+      && matches.some((p) => patchType(p) === 'idea');
+    const header = `${lead} for ${APP_LABEL[app]} (${matches.length}):`;
+    const body = promptGroup(matches);
+    const closing = `Review each, propose changes to ${app}-spec.md, then implement.`;
+    return (hasBoth ? [header, '', body, '', closing] : [header, body, '', closing]).join('\n');
   }
 
   $('#export-copy').addEventListener('click', async () => {
-    const matches = state.patches
-      .filter((p) => p.app === state.exportApp && state.exportFilters.has(p.status))
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const matches = exportMatches();
     if (!matches.length) return;
     const text = buildExportText(matches);
     try {
@@ -1187,7 +1302,7 @@
     const toStatus = mode === 'done' ? 'done' : 'doing';
     const toLabel = mode === 'done' ? 'Done' : 'Doing';
     const ids = state.patches
-      .filter((p) => p.app === state.exportApp && p.status === fromStatus)
+      .filter((p) => (state.exportApp === 'all' || p.app === state.exportApp) && p.status === fromStatus)
       .map((p) => p.id);
     if (!ids.length) return;
     try {

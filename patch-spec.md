@@ -27,11 +27,14 @@ The whole point of the app. Optimized for 4-second logging.
 - Utility links top-right: triage view toggle, export
 
 **The capture block (the hero):**
-- Six app pills in a single row: Tick / Break / Tide / Still / Course / Patch
-  - Each pill colored with that app's accent
+- App pills in a single row: Tick / Break / Tide / Still / Course / Patch / Amanda / **All**
+  - Each pill colored with that app's accent; "All" is neutral-toned (suite-wide fix, not app-specific)
   - Tap to select; selected pill stays highlighted
   - Last-used pill is pre-selected on app open
-- Below pills: big text input, autofocused on app open, placeholder "What's broken?"
+- **Type toggle** below the pills: two pills, **Bug** / **Idea**
+  - Bug is the default and re-selects on every save (it is *not* sticky — bug is the home state, ideas are the exception you opt into)
+  - Idea = a design spec / note / thought, not a defect
+- Below the toggle: big text input, autofocused on app open, placeholder "What's broken?"
 - Single "Save" button below (or enter-to-save on desktop)
 
 No modal. No "add fix" button. The capture surface IS the home screen.
@@ -40,10 +43,11 @@ No modal. No "add fix" button. The capture surface IS the home screen.
 - The inbox itself, reverse-chronological
 - Each fix as a card showing:
   - App pill (color-coded, small)
+  - Idea marker (small, lavender) — shown only for ideas; bugs stay unmarked so the inbox reads as "things broken" by default
   - Fix text (primary, bold-ish)
   - Status chip (small, right side)
   - Timestamp (muted, bottom of card)
-- Tap card → inline edit + status change
+- Tap card → inline edit + status change + type change (Bug/Idea is editable here too, for mis-tags)
 - Long-press or swipe → delete
 
 **Empty state:** "Nothing to fix."
@@ -54,9 +58,9 @@ No modal. No "add fix" button. The capture surface IS the home screen.
 
 Same data, regrouped. Toggle via top-right utility link.
 
-- Six collapsible sections, one per app, ordered by open-count descending
+- One collapsible section per app (including an **All** section for suite-wide fixes), ordered by open-count descending
 - Section header: app name + open count ("Course · 5 open")
-- Each section shows its fixes as cards (same card structure as home)
+- Each section shows its fixes as cards (same card structure as home — ideas carry their marker here too)
 - Done and Won't fixes hidden by default; show via filter chip at top ("Showing: Open, Doing")
 
 **Purpose:** Pre-flight check before a Claude Code session. "What's queued up for Course?" answered in one glance.
@@ -68,23 +72,31 @@ Same data, regrouped. Toggle via top-right utility link.
 Modal or dedicated screen, accessed from utility link.
 
 **Controls:**
-- App selector (pills, single-select)
+- App selector (pills, single-select) — includes **All**, which aggregates every app's fixes into one prompt grouped by app
 - Status filter chips (multi-select, default: Open + Doing)
 - Preview panel showing the formatted output below
 
+Bugs **and** ideas are always included together (type is not a filter). The prompt format frames them differently so Claude Code knows which to implement vs. weigh as a spec note.
+
 **Two output formats:**
 
-**Copy as Claude Code prompt:**
+**Copy as Claude Code prompt** — when both types are present they split into labeled groups; a single-type export stays a flat list (unchanged from before):
 ```
 Open fixes for [App] (N):
+
+Bugs (M):
 1. [Fix text]
-2. [Fix text]
+...
+
+Ideas (K):
+1. [Fix text]
 ...
 
 Review each, propose changes to [app]-spec.md, then implement.
 ```
+For the **All** export, items are grouped by app (each app heading, with Bug/Idea sub-grouping inside), and the closing line is generic ("…propose changes to the relevant app's spec, then implement.").
 
-**Copy as plain list:**
+**Copy as plain list** — stays deliberately bare; bugs and ideas mixed, no labels (this is the paste-anywhere format):
 ```
 - [Fix text]
 - [Fix text]
@@ -106,13 +118,16 @@ Single Supabase table on the existing shared project.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | uuid | primary key, default gen_random_uuid() |
-| `app` | text | enum check: tick / break / tide / still / course / patch |
+| `app` | text | enum check: tick / break / tide / still / course / patch / amanda / **all** ('all' = suite-wide, not tied to one app) |
 | `text` | text | the fix itself, not null |
+| `type` | text | enum check: bug / idea, default 'bug' (idea = a design spec / note / idea, not a defect) |
 | `status` | text | enum check: open / doing / done / wont, default 'open' |
 | `created_at` | timestamptz | default now() |
 | `updated_at` | timestamptz | default now(), updated via trigger |
 
 No image field. No severity. No screen/area. If a field starts feeling necessary, add it after two weeks of real use, not before.
+
+`type` is **not** a priority/severity proxy — it's a handoff category. A bug means "something's broken, fix it"; an idea means "a design note / spec thought to weigh." Both still get exported and handed to Claude Code together; the only difference is how the export prompt frames them.
 
 ---
 
@@ -126,6 +141,9 @@ Terse, suite-consistent.
 - Export preview: "Copied — 5 fixes"
 - Confirm delete: "Delete this fix?" / "Delete"
 - Status chips: Open, Doing, Done, Won't (capitalized, no extra words)
+- Type toggle: Bug, Idea (capitalized, no extra words)
+- Idea card marker: "Idea" (lavender; bugs show no marker)
+- Export group headers: "Bugs (3):" / "Ideas (2):"
 
 ---
 
@@ -136,7 +154,7 @@ Explicit non-goals — list here so future feature creep gets caught:
 - **No screenshots / image attachments.** Capture friction kills inbox apps. If a visual bug is hard to describe in words, save the screenshot to camera roll and reference it in the fix text ("see screenshot, May 14 ~9pm").
 - **No spec rewriting in-app.** Patch generates a Claude Code prompt; CC does the spec update. Patch is dumb on purpose.
 - **No GitHub integration.** No commits, no PRs, no branch writes. Patch hands off a prompt; you run CC manually.
-- **No priority / severity field.** App + status is enough signal. "I'll do the Course ones tonight" beats a P1/P2/P3 system you'll stop maintaining.
+- **No priority / severity field.** App + status is enough signal. "I'll do the Course ones tonight" beats a P1/P2/P3 system you'll stop maintaining. (`type` = bug/idea is *not* a severity scale — it's a handoff category that changes how the export prompt reads, nothing more.)
 - **No assignee / collaborator features.** Single-user app.
 - **No cross-app reads.** Patch doesn't know what's in Tick or Still. It only collects fixes about them.
 
@@ -198,4 +216,4 @@ Two additions to `suite-context-Nate-Apps.md` when this ships:
 
 ---
 
-*Last updated: May 2026.*
+*Last updated: May 2026 — added Bug/Idea type toggle (Bug default), the "All" suite-wide app option, and grouped Bug/Idea export output.*
