@@ -499,6 +499,10 @@
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    white-space: nowrap;
     background: var(--bg-elevated);
     border: 0.5px solid var(--border-strong);
     color: var(--text);
@@ -513,7 +517,19 @@
   .toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
   }
+  .toast-action {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .toast-action:hover { color: var(--accent-hover); }
 
   .view { display: none; }
   .view.active { display: block; }
@@ -527,6 +543,7 @@
     <h1 class="title">Patch</h1>
     <div class="util">
       <button class="util-link" data-go="triage">Triage</button>
+      <button class="util-link" data-go="history">History</button>
       <button class="util-link" data-go="export">Export</button>
     </div>
   </header>
@@ -549,12 +566,28 @@
     <h1 class="title">Triage</h1>
     <div class="util">
       <button class="util-link" data-go="capture">Home</button>
+      <button class="util-link" data-go="history">History</button>
       <button class="util-link" data-go="export">Export</button>
     </div>
   </header>
 
   <div class="filter-row" id="triage-filters"></div>
   <div id="triage-body"></div>
+</div>
+
+<!-- HISTORY VIEW -->
+<div class="view" id="view-history">
+  <header class="header">
+    <h1 class="title">History</h1>
+    <div class="util">
+      <button class="util-link" data-go="capture">Home</button>
+      <button class="util-link" data-go="triage">Triage</button>
+      <button class="util-link" data-go="export">Export</button>
+    </div>
+  </header>
+
+  <div class="section-label">All activity, most recent first</div>
+  <div class="fix-list" id="history-body"></div>
 </div>
 
 <!-- EXPORT VIEW -->
@@ -664,12 +697,26 @@
     return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  function showToast(msg) {
+  function showToast(msg, actionLabel, onAction) {
     const t = $('#toast');
-    t.textContent = msg;
-    t.classList.add('show');
+    t.innerHTML = '';
+    t.appendChild(el('span', { class: 'toast-msg' }, msg));
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+    if (actionLabel && onAction) {
+      t.appendChild(el('button', {
+        class: 'toast-action',
+        onclick: () => {
+          clearTimeout(showToast._t);
+          t.classList.remove('show');
+          onAction();
+        },
+      }, actionLabel));
+      t.classList.add('show');
+      showToast._t = setTimeout(() => t.classList.remove('show'), 6000);
+    } else {
+      t.classList.add('show');
+      showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+    }
   }
 
   // — Navigation —
@@ -684,6 +731,7 @@
       setTimeout(() => $('#capture-input').focus(), 50);
     }
     if (view === 'triage') renderTriage();
+    if (view === 'history') renderHistory();
     if (view === 'export') renderExport();
   }
 
@@ -730,6 +778,57 @@
     state.patches = state.patches.filter((p) => p.id !== id);
   }
 
+  async function restorePatch(row) {
+    const restored = await sbFetch('/patches', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: row.id,
+        app: row.app,
+        text: row.text,
+        status: row.status,
+        created_at: row.created_at,
+      }),
+    });
+    const r = Array.isArray(restored) ? restored[0] : restored;
+    if (r) {
+      state.patches.push(r);
+      state.patches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    return r;
+  }
+
+  async function patchStatusByIds(ids, status) {
+    const idList = ids.map((id) => `"${id}"`).join(',');
+    await sbFetch(`/patches?id=in.(${idList})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    state.patches.forEach((p) => {
+      if (ids.includes(p.id)) p.status = status;
+    });
+  }
+
+  async function handleDelete(p) {
+    const snapshot = { ...p };
+    try {
+      await deletePatch(p.id);
+    } catch (err) {
+      showToast('Delete failed');
+      return;
+    }
+    state.editingId = null;
+    rerenderCurrentView();
+    showToast('Fix deleted', 'Undo', async () => {
+      try {
+        await restorePatch(snapshot);
+        rerenderCurrentView();
+        showToast('Restored');
+      } catch (err) {
+        showToast('Undo failed — fix not restored');
+      }
+    });
+  }
+
   // — Capture view —
   function renderCapturePills() {
     const row = $('#capture-pills');
@@ -766,8 +865,8 @@
   }
 
   // — Fix card (shared by capture + triage) —
-  function renderFixCard(p) {
-    if (state.editingId === p.id) return renderFixEditing(p);
+  function renderFixCard(p, tsField = 'created_at') {
+    if (state.editingId === p.id) return renderFixEditing(p, tsField);
 
     const card = el('div', { class: 'fix', dataset: { id: p.id } });
     card.appendChild(el('div', { class: 'fix-top' },
@@ -775,7 +874,7 @@
       el('span', { class: `status-chip ${p.status}` }, STATUS_LABEL[p.status]),
     ));
     card.appendChild(el('div', { class: `fix-text${p.status === 'wont' ? ' wont' : ''}` }, p.text));
-    card.appendChild(el('div', { class: 'fix-ts' }, formatTimestamp(p.created_at)));
+    card.appendChild(el('div', { class: 'fix-ts' }, formatTimestamp(p[tsField] || p.created_at)));
 
     card.addEventListener('click', () => {
       state.editingId = p.id;
@@ -784,11 +883,11 @@
     return card;
   }
 
-  function renderFixEditing(p) {
+  function renderFixEditing(p, tsField = 'created_at') {
     const card = el('div', { class: 'fix editing', dataset: { id: p.id } });
     card.appendChild(el('div', { class: 'fix-top' },
       el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
-      el('span', { class: 'fix-ts' }, formatTimestamp(p.created_at)),
+      el('span', { class: 'fix-ts' }, formatTimestamp(p[tsField] || p.created_at)),
     ));
     const textarea = el('textarea', { class: 'fix-edit-text' });
     textarea.value = p.text;
@@ -815,16 +914,7 @@
     const left = el('div', { class: 'left' },
       el('button', {
         class: 'btn-text danger',
-        onclick: async () => {
-          if (!confirm('Delete this fix?')) return;
-          try {
-            await deletePatch(p.id);
-            state.editingId = null;
-            rerenderCurrentView();
-          } catch (err) {
-            showToast('Delete failed');
-          }
-        },
+        onclick: () => handleDelete(p),
       }, 'Delete'),
     );
     const right = el('div', { class: 'right' },
@@ -869,6 +959,7 @@
   function rerenderCurrentView() {
     if (state.view === 'capture') renderCaptureList();
     if (state.view === 'triage') renderTriage();
+    if (state.view === 'history') renderHistory();
   }
 
   // — Capture save handler —
@@ -972,6 +1063,20 @@
       if (done) return `${done} closed`;
     }
     return parts.join(' · ');
+  }
+
+  // — History view —
+  function renderHistory() {
+    const body = $('#history-body');
+    body.innerHTML = '';
+    const rows = state.patches.slice().sort((a, b) =>
+      new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+    );
+    if (!rows.length) {
+      body.appendChild(el('div', { class: 'empty' }, 'No activity yet.'));
+      return;
+    }
+    rows.slice(0, 100).forEach((p) => body.appendChild(renderFixCard(p, 'updated_at')));
   }
 
   // — Export view —
@@ -1086,16 +1191,17 @@
       .map((p) => p.id);
     if (!ids.length) return;
     try {
-      const idList = ids.map((id) => `"${id}"`).join(',');
-      await sbFetch(`/patches?id=in.(${idList})`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: toStatus }),
-      });
-      state.patches.forEach((p) => {
-        if (ids.includes(p.id)) p.status = toStatus;
-      });
-      showToast(`Marked ${ids.length} as ${toLabel}`);
+      await patchStatusByIds(ids, toStatus);
       renderExport();
+      showToast(`Marked ${ids.length} as ${toLabel}`, 'Undo', async () => {
+        try {
+          await patchStatusByIds(ids, fromStatus);
+          renderExport();
+          showToast(`Reverted ${ids.length} to ${STATUS_LABEL[fromStatus]}`);
+        } catch (err) {
+          showToast('Undo failed');
+        }
+      });
     } catch (err) {
       showToast('Update failed');
     }
