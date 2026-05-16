@@ -173,6 +173,9 @@
   .type-pill:hover { background: var(--border-strong); }
   .type-pill.on.bug { background: var(--accent); color: #1a1a1c; border-color: var(--accent); }
   .type-pill.on.idea { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
+  /* Capture toggle now sits below the input — give it breathing room from
+     the textarea (the edit-card type-row keeps its own spacing). */
+  #capture-types { margin-top: 12px; }
 
   .input {
     width: 100%;
@@ -591,8 +594,8 @@
 
   <div class="capture">
     <div class="pills-row" id="capture-pills"></div>
-    <div class="type-row" id="capture-types"></div>
     <textarea class="input" id="capture-input" placeholder="What's broken?" rows="1"></textarea>
+    <div class="type-row" id="capture-types"></div>
     <div class="save-row">
       <button class="save-btn" id="capture-save" disabled>Save</button>
     </div>

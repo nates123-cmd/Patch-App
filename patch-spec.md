@@ -31,10 +31,11 @@ The whole point of the app. Optimized for 4-second logging.
   - Each pill colored with that app's accent; "All" is neutral-toned (suite-wide fix, not app-specific)
   - Tap to select; selected pill stays highlighted
   - Last-used pill is pre-selected on app open
-- **Type toggle** below the pills: two pills, **Bug** / **Idea**
+- Below the pills: big text input, autofocused on app open, placeholder "What's broken?"
+- **Type toggle** below the text input: two pills, **Bug** / **Idea**
+  - Placed under the input (not the app pills) so the capture flow reads top-to-bottom: what app → what's broken → bug or idea → save
   - Bug is the default and re-selects on every save (it is *not* sticky — bug is the home state, ideas are the exception you opt into)
   - Idea = a design spec / note / thought, not a defect
-- Below the toggle: big text input, autofocused on app open, placeholder "What's broken?"
 - Single "Save" button below (or enter-to-save on desktop)
 
 No modal. No "add fix" button. The capture surface IS the home screen.
