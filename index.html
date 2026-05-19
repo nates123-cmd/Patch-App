@@ -28,6 +28,7 @@
     --course: #d4995a;
     --patch: #f5d547;
     --amanda: #e8a5b0;
+    --stock: #5fbfae;
 
     --layout-width: 440px;
   }
@@ -141,6 +142,7 @@
   .pill.course { color: var(--course); }
   .pill.patch { color: var(--patch); }
   .pill.amanda { color: var(--amanda); }
+  .pill.stock { color: var(--stock); }
 
   .pill.selected.tick { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
   .pill.selected.break { background: var(--break); color: #1a1a1c; border-color: var(--break); }
@@ -149,6 +151,7 @@
   .pill.selected.course { background: var(--course); color: #1a1a1c; border-color: var(--course); }
   .pill.selected.patch { background: var(--patch); color: #1a1a1c; border-color: var(--patch); }
   .pill.selected.amanda { background: var(--amanda); color: #1a1a1c; border-color: var(--amanda); }
+  .pill.selected.stock { background: var(--stock); color: #1a1a1c; border-color: var(--stock); }
   .pill.all { color: var(--text-muted); }
   .pill.selected.all { background: var(--text-muted); color: var(--bg); border-color: var(--text-muted); }
 
@@ -270,6 +273,7 @@
   .app-tag.course { color: var(--course); }
   .app-tag.patch { color: var(--patch); }
   .app-tag.amanda { color: var(--amanda); }
+  .app-tag.stock { color: var(--stock); }
   .app-tag.all { color: var(--text-muted); }
 
   .type-tag {
@@ -433,6 +437,7 @@
   .triage-name.course { color: var(--course); }
   .triage-name.patch { color: var(--patch); }
   .triage-name.amanda { color: var(--amanda); }
+  .triage-name.stock { color: var(--stock); }
   .triage-name.all { color: var(--text-muted); }
   .triage-count {
     font-size: 12px;
@@ -692,8 +697,8 @@
   }
 
   // — Constants —
-  const APPS = ['tick', 'break', 'tide', 'still', 'course', 'patch', 'amanda', 'all'];
-  const APP_LABEL = { tick: 'Tick', break: 'Break', tide: 'Tide', still: 'Still', course: 'Course', patch: 'Patch', amanda: 'Amanda', all: 'All' };
+  const APPS = ['tick', 'break', 'tide', 'still', 'course', 'patch', 'amanda', 'stock', 'all'];
+  const APP_LABEL = { tick: 'Tick', break: 'Break', tide: 'Tide', still: 'Still', course: 'Course', patch: 'Patch', amanda: 'Amanda', stock: 'Stock', all: 'All' };
   const STATUSES = ['open', 'doing', 'done', 'wont'];
   const STATUS_LABEL = { open: 'Open', doing: 'Doing', done: 'Done', wont: "Won't" };
   const TYPES = ['bug', 'idea'];

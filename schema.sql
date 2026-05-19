@@ -4,7 +4,7 @@
 
 create table patches (
   id uuid primary key default gen_random_uuid(),
-  app text not null check (app in ('tick','break','tide','still','course','patch','amanda','all')),
+  app text not null check (app in ('tick','break','tide','still','course','patch','amanda','stock','all')),
   text text not null,
   type text not null default 'bug' check (type in ('bug','idea')),
   status text not null default 'open' check (status in ('open','doing','done','wont')),
@@ -40,3 +40,8 @@ create trigger patches_touch
 --   check (app in ('tick','break','tide','still','course','patch','amanda','all'));
 -- alter table patches add column if not exists type text not null default 'bug'
 --   check (type in ('bug','idea'));
+--
+-- Migration (May 2026): add `stock` app. Run on existing installs:
+-- alter table patches drop constraint patches_app_check;
+-- alter table patches add constraint patches_app_check
+--   check (app in ('tick','break','tide','still','course','patch','amanda','stock','all'));

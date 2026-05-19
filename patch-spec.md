@@ -27,7 +27,7 @@ The whole point of the app. Optimized for 4-second logging.
 - Utility links top-right: triage view toggle, export
 
 **The capture block (the hero):**
-- App pills in a single row: Tick / Break / Tide / Still / Course / Patch / Amanda / **All**
+- App pills in a single row: Tick / Break / Tide / Still / Course / Patch / Amanda / Stock / **All**
   - Each pill colored with that app's accent; "All" is neutral-toned (suite-wide fix, not app-specific)
   - Tap to select; selected pill stays highlighted
   - Last-used pill is pre-selected on app open
@@ -119,7 +119,7 @@ Single Supabase table on the existing shared project.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | uuid | primary key, default gen_random_uuid() |
-| `app` | text | enum check: tick / break / tide / still / course / patch / amanda / **all** ('all' = suite-wide, not tied to one app) |
+| `app` | text | enum check: tick / break / tide / still / course / patch / amanda / stock / **all** ('all' = suite-wide, not tied to one app) |
 | `text` | text | the fix itself, not null |
 | `type` | text | enum check: bug / idea, default 'bug' (idea = a design spec / note / idea, not a defect) |
 | `status` | text | enum check: open / doing / done / wont, default 'open' |
