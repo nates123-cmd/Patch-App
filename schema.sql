@@ -85,8 +85,14 @@ alter table patches add column if not exists fixed_at        timestamptz;
 update patches set title = text where title is null;
 alter table patches alter column text drop not null;
 
--- 3. Remap app values absent from the new set (Still is deprecated → Ink).
+-- 3. App: drop the old check + NOT NULL, remap Still → Ink while unconstrained,
+--    then add the new check. Remapping before widening the check fails, because
+--    the old check does not allow 'ink'.
+alter table patches alter column app drop not null;
+alter table patches drop constraint if exists patches_app_check;
 update patches set app = 'ink' where app = 'still';
+alter table patches add constraint patches_app_check
+  check (app is null or app in ('course','stock','ink','tide','tick','break','today','crate','patch'));
 
 -- 4. Remap statuses to the new lifecycle, then swap the constraint + default.
 alter table patches drop constraint if exists patches_status_check;
@@ -103,14 +109,7 @@ alter table patches drop constraint if exists patches_type_check;
 alter table patches add constraint patches_type_check
   check (type in ('bug','feature','idea'));
 
--- 6. App enum: the new 8 + 'patch' kept (Patch logs fixes about itself).
---    App becomes nullable so ideas can omit it.
-alter table patches alter column app drop not null;
-alter table patches drop constraint if exists patches_app_check;
-alter table patches add constraint patches_app_check
-  check (app is null or app in ('course','stock','ink','tide','tick','break','today','crate','patch'));
-
--- 7. Severity enum (bugs only; null allowed for legacy / non-bug rows).
+-- 6. Severity enum (bugs only; null allowed for legacy / non-bug rows).
 alter table patches drop constraint if exists patches_severity_check;
 alter table patches add constraint patches_severity_check
   check (severity is null or severity in ('blocker','annoying','polish'));
