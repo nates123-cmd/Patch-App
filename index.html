@@ -258,6 +258,30 @@
     padding-left: 2px;
   }
 
+  /* Queue tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--bg-elevated);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 8px;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tab:hover { color: var(--text-muted); }
+  .tab.on { background: var(--bg-nested); border-color: var(--border-strong); color: var(--text); }
+  .tab.on.bug { color: var(--accent); }
+  .tab.on.feature { color: var(--tide); }
+  .tab.on.idea { color: var(--tick); }
+  .tab-count { font-size: 11px; font-weight: 500; color: var(--text-fainter); }
+  .tab.on .tab-count { color: var(--text-faint); }
+
   /* Item card */
   .fix-list { display: flex; flex-direction: column; gap: 8px; }
   .fix {
@@ -590,7 +614,7 @@
 
   <div class="capture" id="capture-block"></div>
 
-  <div class="section-label" id="capture-list-label">Recent</div>
+  <div class="tabs" id="queue-tabs"></div>
   <div class="fix-list" id="capture-list"></div>
 </div>
 
@@ -687,6 +711,8 @@
   const TYPES = ['bug', 'feature', 'idea'];
   const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', idea: 'Idea' };
   const TYPE_DESC = { bug: 'Something is broken', feature: 'Something to build', idea: 'A thought to weigh' };
+  const TAB_LABEL = { bug: 'Bugs', feature: 'Features', idea: 'Ideas' };
+  const QUEUE_EMPTY = { bug: 'Nothing to fix.', feature: 'No features yet.', idea: 'No ideas yet.' };
 
   const STATUSES = ['open', 'in_progress', 'needs_info', 'fixed', 'shipped', 'parked'];
   const STATUS_LABEL = { open: 'Open', in_progress: 'In progress', needs_info: 'Needs info', fixed: 'Fixed', shipped: 'Shipped', parked: 'Parked' };
@@ -730,6 +756,7 @@
     items: [],
     lastApp: localStorage.getItem('patch_last_app') || 'course',
     capture: { type: null, values: {} },
+    queueTab: 'bug',
     editingId: null,
     triageOpenSections: new Set(),
     triageFilters: new Set(ACTIVE_STATUSES),
@@ -1036,6 +1063,7 @@
     try {
       await createItem(payload);
       if (v.app) { state.lastApp = v.app; localStorage.setItem('patch_last_app', v.app); }
+      state.queueTab = t;
       state.capture = { type: null, values: {} };
       renderCapture();
     } catch (err) {
@@ -1045,14 +1073,46 @@
   }
 
   function renderCaptureList() {
+    renderQueueTabs();
     const list = $('#capture-list');
     list.innerHTML = '';
-    const active = state.items.filter((it) => ACTIVE_STATUSES.includes(it.status));
-    if (!active.length) {
-      list.appendChild(el('div', { class: 'empty' }, 'Nothing to fix.'));
+    const tab = state.queueTab;
+    const items = sortQueue(state.items.filter((it) => ACTIVE_STATUSES.includes(it.status) && itemType(it) === tab), tab);
+    if (!items.length) {
+      list.appendChild(el('div', { class: 'empty' }, QUEUE_EMPTY[tab]));
       return;
     }
-    active.slice(0, 40).forEach((it) => list.appendChild(renderItemCard(it)));
+    items.slice(0, 60).forEach((it) => list.appendChild(renderItemCard(it)));
+  }
+
+  function renderQueueTabs() {
+    const wrap = $('#queue-tabs');
+    wrap.innerHTML = '';
+    TYPES.forEach((t) => {
+      const count = state.items.filter((it) => ACTIVE_STATUSES.includes(it.status) && itemType(it) === t).length;
+      wrap.appendChild(el('button', {
+        class: `tab ${t}${state.queueTab === t ? ' on' : ''}`,
+        type: 'button',
+        onclick: () => { state.queueTab = t; state.editingId = null; renderCaptureList(); },
+      },
+        el('span', {}, TAB_LABEL[t]),
+        el('span', { class: 'tab-count' }, String(count)),
+      ));
+    });
+  }
+
+  // Bugs sort by severity (blocker > annoying > polish > unset) then newest first;
+  // features and ideas sort newest first.
+  function sortQueue(items, tab) {
+    if (tab === 'bug') {
+      return items.slice().sort((a, b) => {
+        const sa = a.severity != null ? SEVERITY_ORDER[a.severity] : 99;
+        const sb = b.severity != null ? SEVERITY_ORDER[b.severity] : 99;
+        if (sa !== sb) return sa - sb;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+    }
+    return items.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }
 
   // — Item card (shared by all lists) —
