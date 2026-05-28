@@ -20,6 +20,7 @@
     --text-fainter: #5f5e5a;
     --accent: #f5d547;
     --accent-hover: #ffe066;
+    --danger: #e57373;
 
     --tick: #a39cf0;
     --break: #e8d4a8;
@@ -27,8 +28,10 @@
     --still: #b4c89a;
     --course: #d4995a;
     --patch: #f5d547;
-    --amanda: #e8a5b0;
     --stock: #5fbfae;
+    --ink: #8b9ae0;
+    --today: #eaa18a;
+    --crate: #df8a8a;
 
     --layout-width: 440px;
   }
@@ -50,9 +53,6 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  /* Lock horizontal motion + pinch zoom at the document level. Inner
-     elements with their own gestures still work because they declare
-     their own touch-action. */
   html, body {
     overflow-x: hidden;
     overscroll-behavior-x: none;
@@ -73,10 +73,7 @@
     padding: 22px 18px 100px;
   }
 
-  button {
-    font-family: inherit;
-    cursor: pointer;
-  }
+  button { font-family: inherit; cursor: pointer; }
 
   /* Header */
   .header {
@@ -85,15 +82,8 @@
     align-items: baseline;
     margin-bottom: 20px;
   }
-  .title {
-    font-size: 26px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-  .util {
-    display: flex;
-    gap: 14px;
-  }
+  .title { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .util { display: flex; gap: 14px; }
   .util-link {
     background: none;
     border: none;
@@ -102,10 +92,7 @@
     padding: 4px 2px;
     cursor: pointer;
   }
-  .util-link:hover, .util-link:focus-visible {
-    color: var(--text-muted);
-    outline: none;
-  }
+  .util-link:hover, .util-link:focus-visible { color: var(--text-muted); outline: none; }
 
   /* Capture block */
   .capture {
@@ -116,12 +103,85 @@
     margin-bottom: 22px;
   }
 
-  .pills-row {
+  /* Type picker (three large cards) */
+  .type-picker { display: flex; flex-direction: column; gap: 10px; }
+  .type-card {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 12px;
+    flex-direction: column;
+    gap: 3px;
+    text-align: left;
+    background: var(--bg-nested);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 16px 16px;
+    color: var(--text);
+    transition: background 0.12s, border-color 0.12s, transform 0.05s;
   }
+  .type-card:hover { background: var(--border-strong); }
+  .type-card:active { transform: scale(0.99); }
+  .type-card .tc-name { font-size: 16px; font-weight: 600; }
+  .type-card.bug .tc-name { color: var(--accent); }
+  .type-card.feature .tc-name { color: var(--tide); }
+  .type-card.idea .tc-name { color: var(--tick); }
+  .type-card .tc-desc { font-size: 12px; color: var(--text-faint); }
+
+  /* Form */
+  .form-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .form-title { font-size: 14px; font-weight: 600; }
+  .form-title.bug { color: var(--accent); }
+  .form-title.feature { color: var(--tide); }
+  .form-title.idea { color: var(--tick); }
+  .change-type {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 12px;
+    padding: 2px;
+  }
+  .change-type:hover { color: var(--text-muted); }
+
+  .field { margin-bottom: 12px; }
+  .field-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+  .field-label.required::after {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-left: 6px;
+    vertical-align: 0.12em;
+  }
+  .field-input {
+    width: 100%;
+    background: var(--bg);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 11px 12px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    line-height: 1.4;
+    resize: vertical;
+  }
+  textarea.field-input { min-height: 46px; }
+  .field-input::placeholder { color: var(--text-fainter); }
+  .field-input:focus { outline: none; border-color: var(--accent); }
+
+  .pills-row { display: flex; flex-wrap: wrap; gap: 6px; }
   .pill {
     font-size: 11px;
     font-weight: 500;
@@ -138,33 +198,29 @@
   .pill.tick { color: var(--tick); }
   .pill.break { color: var(--break); }
   .pill.tide { color: var(--tide); }
-  .pill.still { color: var(--still); }
   .pill.course { color: var(--course); }
   .pill.patch { color: var(--patch); }
-  .pill.amanda { color: var(--amanda); }
   .pill.stock { color: var(--stock); }
-
+  .pill.ink { color: var(--ink); }
+  .pill.today { color: var(--today); }
+  .pill.crate { color: var(--crate); }
+  .pill.all { color: var(--text-muted); }
   .pill.selected.tick { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
   .pill.selected.break { background: var(--break); color: #1a1a1c; border-color: var(--break); }
   .pill.selected.tide { background: var(--tide); color: #1a1a1c; border-color: var(--tide); }
-  .pill.selected.still { background: var(--still); color: #1a1a1c; border-color: var(--still); }
   .pill.selected.course { background: var(--course); color: #1a1a1c; border-color: var(--course); }
   .pill.selected.patch { background: var(--patch); color: #1a1a1c; border-color: var(--patch); }
-  .pill.selected.amanda { background: var(--amanda); color: #1a1a1c; border-color: var(--amanda); }
   .pill.selected.stock { background: var(--stock); color: #1a1a1c; border-color: var(--stock); }
-  .pill.all { color: var(--text-muted); }
+  .pill.selected.ink { background: var(--ink); color: #1a1a1c; border-color: var(--ink); }
+  .pill.selected.today { background: var(--today); color: #1a1a1c; border-color: var(--today); }
+  .pill.selected.crate { background: var(--crate); color: #1a1a1c; border-color: var(--crate); }
   .pill.selected.all { background: var(--text-muted); color: var(--bg); border-color: var(--text-muted); }
 
-  /* Bug / Idea type toggle */
-  .type-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-  }
-  .type-pill {
+  /* Severity pills */
+  .sev-pill {
     font-size: 11px;
     font-weight: 500;
-    padding: 6px 14px;
+    padding: 6px 13px;
     border-radius: 999px;
     background: var(--bg-nested);
     color: var(--text-muted);
@@ -172,44 +228,19 @@
     cursor: pointer;
     transition: background 0.12s, transform 0.05s;
   }
-  .type-pill:active { transform: scale(0.96); }
-  .type-pill:hover { background: var(--border-strong); }
-  .type-pill.on.bug { background: var(--accent); color: #1a1a1c; border-color: var(--accent); }
-  .type-pill.on.idea { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
-  /* Capture toggle now sits below the input — give it breathing room from
-     the textarea (the edit-card type-row keeps its own spacing). */
-  #capture-types { margin-top: 12px; }
+  .sev-pill:active { transform: scale(0.96); }
+  .sev-pill:hover { background: var(--border-strong); }
+  .sev-pill.on.blocker { background: var(--danger); color: #1a1a1c; border-color: var(--danger); }
+  .sev-pill.on.annoying { background: var(--accent); color: #1a1a1c; border-color: var(--accent); }
+  .sev-pill.on.polish { background: var(--text-faint); color: var(--bg); border-color: var(--text-faint); }
 
-  .input {
-    width: 100%;
-    background: var(--bg);
-    border: 0.5px solid var(--border-strong);
-    border-radius: 10px;
-    padding: 12px;
-    color: var(--text);
-    font-size: 15px;
-    font-family: inherit;
-    resize: none;
-    min-height: 44px;
-    line-height: 1.4;
-  }
-  .input::placeholder { color: var(--text-fainter); }
-  .input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-
-  .save-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-  }
+  .save-row { display: flex; justify-content: flex-end; margin-top: 14px; }
   .save-btn {
     background: var(--accent);
     color: #1a1a1c;
     border: none;
     border-radius: 8px;
-    padding: 8px 20px;
+    padding: 9px 22px;
     font-size: 13px;
     font-weight: 600;
     transition: background 0.12s, opacity 0.12s;
@@ -227,9 +258,8 @@
     padding-left: 2px;
   }
 
-  /* Fix card */
+  /* Item card */
   .fix-list { display: flex; flex-direction: column; gap: 8px; }
-
   .fix {
     background: var(--bg-elevated);
     border: 0.5px solid var(--border);
@@ -239,11 +269,7 @@
     transition: background 0.12s;
   }
   .fix:hover { background: var(--bg-nested); }
-  .fix.editing {
-    background: var(--bg-nested);
-    border-color: var(--border-strong);
-    cursor: default;
-  }
+  .fix.editing { background: var(--bg-nested); border-color: var(--border-strong); cursor: default; }
 
   .fix-top {
     display: flex;
@@ -252,12 +278,7 @@
     gap: 8px;
     margin-bottom: 6px;
   }
-  .fix-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-  }
+  .fix-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
   .app-tag {
     font-size: 10px;
     font-weight: 600;
@@ -269,12 +290,12 @@
   .app-tag.tick { color: var(--tick); }
   .app-tag.break { color: var(--break); }
   .app-tag.tide { color: var(--tide); }
-  .app-tag.still { color: var(--still); }
   .app-tag.course { color: var(--course); }
   .app-tag.patch { color: var(--patch); }
-  .app-tag.amanda { color: var(--amanda); }
   .app-tag.stock { color: var(--stock); }
-  .app-tag.all { color: var(--text-muted); }
+  .app-tag.ink { color: var(--ink); }
+  .app-tag.today { color: var(--today); }
+  .app-tag.crate { color: var(--crate); }
 
   .type-tag {
     font-size: 10px;
@@ -282,8 +303,19 @@
     padding: 3px 8px;
     border-radius: 999px;
     background: var(--bg-nested);
-    color: var(--tick);
   }
+  .type-tag.feature { color: var(--tide); }
+  .type-tag.idea { color: var(--tick); }
+
+  .sev-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .sev-chip.blocker { background: rgba(229, 115, 115, 0.18); color: var(--danger); }
+  .sev-chip.annoying { background: rgba(245, 213, 71, 0.15); color: var(--accent); }
+  .sev-chip.polish { background: rgba(136, 135, 130, 0.2); color: var(--text-faint); }
 
   .status-chip {
     font-size: 10px;
@@ -292,50 +324,35 @@
     border-radius: 999px;
     border: none;
     background: transparent;
-    cursor: pointer;
+    white-space: nowrap;
   }
   .status-chip.open { background: rgba(245, 213, 71, 0.15); color: var(--accent); }
-  .status-chip.doing { background: rgba(133, 183, 235, 0.15); color: var(--tide); }
-  .status-chip.done { background: rgba(180, 200, 154, 0.15); color: var(--still); }
-  .status-chip.wont { background: rgba(95, 94, 90, 0.25); color: var(--text-faint); text-decoration: line-through; }
+  .status-chip.in_progress { background: rgba(133, 183, 235, 0.15); color: var(--tide); }
+  .status-chip.fixed { background: rgba(180, 200, 154, 0.15); color: var(--still); }
+  .status-chip.shipped { background: rgba(95, 191, 174, 0.15); color: var(--stock); }
+  .status-chip.parked { background: rgba(95, 94, 90, 0.25); color: var(--text-faint); }
+  .status-chip.needs_info { background: rgba(163, 156, 240, 0.15); color: var(--tick); }
 
   .fix-text {
     font-size: 14px;
     color: var(--text);
     line-height: 1.45;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    font-weight: 500;
   }
-  .fix-text.wont { color: var(--text-fainter); text-decoration: line-through; }
-  .fix-ts {
-    font-size: 11px;
-    color: var(--text-fainter);
+  .fix-text.parked { color: var(--text-fainter); }
+  .fix-sub {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
   }
+  .fix-ts { font-size: 11px; color: var(--text-fainter); }
 
   /* Editing state */
-  .fix-edit-text {
-    width: 100%;
-    background: var(--bg);
-    border: 0.5px solid var(--border-strong);
-    border-radius: 8px;
-    padding: 10px;
-    color: var(--text);
-    font-size: 14px;
-    font-family: inherit;
-    line-height: 1.45;
-    resize: vertical;
-    min-height: 60px;
-    margin-bottom: 10px;
-  }
-  .fix-edit-text:focus { outline: none; border-color: var(--accent); }
-
-  .fix-edit-status {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
+  .fix-edit-status { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .status-pick {
     font-size: 10px;
     font-weight: 600;
@@ -348,19 +365,32 @@
   }
   .status-pick:hover { color: var(--text); }
   .status-pick.on.open { background: rgba(245, 213, 71, 0.2); color: var(--accent); border-color: var(--accent); }
-  .status-pick.on.doing { background: rgba(133, 183, 235, 0.2); color: var(--tide); border-color: var(--tide); }
-  .status-pick.on.done { background: rgba(180, 200, 154, 0.2); color: var(--still); border-color: var(--still); }
-  .status-pick.on.wont { background: rgba(95, 94, 90, 0.3); color: var(--text-muted); border-color: var(--border-strong); }
+  .status-pick.on.in_progress { background: rgba(133, 183, 235, 0.2); color: var(--tide); border-color: var(--tide); }
+  .status-pick.on.fixed { background: rgba(180, 200, 154, 0.2); color: var(--still); border-color: var(--still); }
+  .status-pick.on.shipped { background: rgba(95, 191, 174, 0.2); color: var(--stock); border-color: var(--stock); }
+  .status-pick.on.parked { background: rgba(95, 94, 90, 0.3); color: var(--text-muted); border-color: var(--border-strong); }
+  .status-pick.on.needs_info { background: rgba(163, 156, 240, 0.2); color: var(--tick); border-color: var(--tick); }
 
-  .fix-edit-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: space-between;
+  .type-row { display: flex; gap: 6px; margin-bottom: 12px; }
+  .type-pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--bg-nested);
+    color: var(--text-muted);
+    border: 0.5px solid var(--border-strong);
+    cursor: pointer;
+    transition: background 0.12s, transform 0.05s;
   }
-  .fix-edit-actions .left, .fix-edit-actions .right {
-    display: flex;
-    gap: 8px;
-  }
+  .type-pill:active { transform: scale(0.96); }
+  .type-pill:hover { background: var(--border-strong); }
+  .type-pill.on.bug { background: var(--accent); color: #1a1a1c; border-color: var(--accent); }
+  .type-pill.on.feature { background: var(--tide); color: #1a1a1c; border-color: var(--tide); }
+  .type-pill.on.idea { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
+
+  .fix-edit-actions { display: flex; gap: 8px; justify-content: space-between; margin-top: 4px; }
+  .fix-edit-actions .left, .fix-edit-actions .right { display: flex; gap: 8px; }
   .btn-text {
     background: transparent;
     border: none;
@@ -370,7 +400,7 @@
     border-radius: 6px;
   }
   .btn-text:hover { color: var(--text); background: var(--border); }
-  .btn-text.danger { color: #e57373; }
+  .btn-text.danger { color: var(--danger); }
   .btn-text.danger:hover { color: #ff8a8a; background: rgba(229, 115, 115, 0.1); }
   .btn-primary {
     background: var(--accent);
@@ -382,6 +412,7 @@
     font-weight: 600;
   }
   .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* Empty state */
   .empty {
@@ -392,12 +423,7 @@
   }
 
   /* Triage */
-  .filter-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
+  .filter-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
   .filter-chip {
     font-size: 11px;
     font-weight: 500;
@@ -425,38 +451,21 @@
     user-select: none;
   }
   .triage-header:hover { background: var(--bg-nested); }
-  .triage-name {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: capitalize;
-  }
+  .triage-name { font-size: 14px; font-weight: 600; text-transform: capitalize; }
   .triage-name.tick { color: var(--tick); }
   .triage-name.break { color: var(--break); }
   .triage-name.tide { color: var(--tide); }
-  .triage-name.still { color: var(--still); }
   .triage-name.course { color: var(--course); }
   .triage-name.patch { color: var(--patch); }
-  .triage-name.amanda { color: var(--amanda); }
   .triage-name.stock { color: var(--stock); }
-  .triage-name.all { color: var(--text-muted); }
-  .triage-count {
-    font-size: 12px;
-    color: var(--text-faint);
-    margin-left: 8px;
-    font-weight: 400;
-  }
-  .triage-chev {
-    color: var(--text-fainter);
-    font-size: 12px;
-    transition: transform 0.15s;
-  }
+  .triage-name.ink { color: var(--ink); }
+  .triage-name.today { color: var(--today); }
+  .triage-name.crate { color: var(--crate); }
+  .triage-name.none { color: var(--text-muted); }
+  .triage-count { font-size: 12px; color: var(--text-faint); margin-left: 8px; font-weight: 400; }
+  .triage-chev { color: var(--text-fainter); font-size: 12px; transition: transform 0.15s; }
   .triage-section.open .triage-chev { transform: rotate(90deg); }
-  .triage-fixes {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0 2px 4px;
-  }
+  .triage-fixes { display: none; flex-direction: column; gap: 8px; padding: 0 2px 4px; }
   .triage-section.open .triage-fixes { display: flex; }
 
   /* Export */
@@ -490,12 +499,7 @@
     text-align: center;
     padding: 24px;
   }
-
-  .format-toggle {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
+  .format-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
   .format-btn {
     flex: 1;
     background: var(--bg-elevated);
@@ -506,17 +510,8 @@
     font-size: 12px;
     font-weight: 500;
   }
-  .format-btn.on {
-    background: var(--bg-nested);
-    color: var(--text);
-    border-color: var(--border-strong);
-  }
-
-  .export-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-  }
+  .format-btn.on { background: var(--bg-nested); color: var(--text); border-color: var(--border-strong); }
+  .export-actions { display: flex; gap: 8px; margin-top: 16px; }
   .action-primary {
     flex: 1;
     background: var(--accent);
@@ -563,11 +558,7 @@
     transition: opacity 0.2s, transform 0.2s;
     z-index: 100;
   }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
   .toast-action {
     background: none;
     border: none;
@@ -597,16 +588,9 @@
     </div>
   </header>
 
-  <div class="capture">
-    <div class="pills-row" id="capture-pills"></div>
-    <textarea class="input" id="capture-input" placeholder="What's broken?" rows="1"></textarea>
-    <div class="type-row" id="capture-types"></div>
-    <div class="save-row">
-      <button class="save-btn" id="capture-save" disabled>Save</button>
-    </div>
-  </div>
+  <div class="capture" id="capture-block"></div>
 
-  <div class="section-label">Recent</div>
+  <div class="section-label" id="capture-list-label">Recent</div>
   <div class="fix-list" id="capture-list"></div>
 </div>
 
@@ -669,7 +653,7 @@
   </div>
 
   <div class="export-actions">
-    <button class="action-secondary" id="export-mark-bulk">Mark all as Doing</button>
+    <button class="action-secondary" id="export-mark-bulk">Mark all as In progress</button>
     <button class="action-primary" id="export-copy">Copy</button>
   </div>
 </div>
@@ -697,29 +681,62 @@
   }
 
   // — Constants —
-  const APPS = ['tick', 'break', 'tide', 'still', 'course', 'patch', 'amanda', 'stock', 'all'];
-  const APP_LABEL = { tick: 'Tick', break: 'Break', tide: 'Tide', still: 'Still', course: 'Course', patch: 'Patch', amanda: 'Amanda', stock: 'Stock', all: 'All' };
-  const STATUSES = ['open', 'doing', 'done', 'wont'];
-  const STATUS_LABEL = { open: 'Open', doing: 'Doing', done: 'Done', wont: "Won't" };
-  const TYPES = ['bug', 'idea'];
-  const TYPE_LABEL = { bug: 'Bug', idea: 'Idea' };
-  const patchType = (p) => p.type || 'bug';
+  const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'patch'];
+  const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', patch: 'Patch' };
+
+  const TYPES = ['bug', 'feature', 'idea'];
+  const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', idea: 'Idea' };
+  const TYPE_DESC = { bug: 'Something is broken', feature: 'Something to build', idea: 'A thought to weigh' };
+
+  const STATUSES = ['open', 'in_progress', 'needs_info', 'fixed', 'shipped', 'parked'];
+  const STATUS_LABEL = { open: 'Open', in_progress: 'In progress', needs_info: 'Needs info', fixed: 'Fixed', shipped: 'Shipped', parked: 'Parked' };
+  const ACTIVE_STATUSES = ['open', 'in_progress', 'needs_info'];
+
+  const SEVERITIES = ['blocker', 'annoying', 'polish'];
+  const SEVERITY_LABEL = { blocker: 'Blocker', annoying: 'Annoying', polish: 'Polish' };
+  const SEVERITY_ORDER = { blocker: 0, annoying: 1, polish: 2 };
+
+  const itemType = (it) => it.type || 'bug';
+
+  // Field definitions and per-type form layouts.
+  const FIELD_DEFS = {
+    app:            { kind: 'apps',     label: 'App' },
+    title:          { kind: 'text',     label: 'Title',            placeholder: 'Short title' },
+    where_in_app:   { kind: 'text',     label: 'Where in app',     placeholder: 'Screen / section' },
+    expected:       { kind: 'textarea', label: 'Expected',         placeholder: 'What should happen' },
+    actual:         { kind: 'textarea', label: 'Actual',           placeholder: 'What actually happens' },
+    description:    { kind: 'textarea', label: 'Description',       placeholder: 'Describe it' },
+    severity:       { kind: 'severity', label: 'Severity' },
+    my_guess:       { kind: 'textarea', label: 'My guess',         placeholder: 'Optional — a hunch at the cause' },
+    device_context: { kind: 'text',     label: 'Device / context', placeholder: 'Optional — device, OS, when' },
+    image_url:      { kind: 'text',     label: 'Image URL',        placeholder: 'Optional — link to a screenshot' },
+  };
+  const FORM_FIELDS = {
+    bug:     ['app', 'where_in_app', 'expected', 'actual', 'severity', 'my_guess', 'device_context', 'image_url'],
+    feature: ['app', 'where_in_app', 'description', 'my_guess', 'image_url'],
+    idea:    ['app', 'title', 'description'],
+  };
+  // Required fields per type. App is required for bug + feature, optional for idea.
+  const REQUIRED = {
+    bug:     ['app', 'where_in_app', 'expected', 'actual', 'severity'],
+    feature: ['app', 'where_in_app', 'description'],
+    idea:    ['title', 'description'],
+  };
+  const CONTENT_FIELDS = ['title', 'where_in_app', 'expected', 'actual', 'description', 'severity', 'my_guess', 'device_context', 'image_url'];
 
   // — State —
   const state = {
     view: 'capture',
-    patches: [],
+    items: [],
     lastApp: localStorage.getItem('patch_last_app') || 'course',
-    captureSelected: null,
-    captureType: 'bug',
+    capture: { type: null, values: {} },
     editingId: null,
     triageOpenSections: new Set(),
-    triageFilters: new Set(['open', 'doing']),
+    triageFilters: new Set(ACTIVE_STATUSES),
     exportApp: null,
-    exportFilters: new Set(['open', 'doing']),
+    exportFilters: new Set(ACTIVE_STATUSES),
     exportFormat: 'prompt',
   };
-  state.captureSelected = state.lastApp;
 
   // — DOM helpers —
   const $ = (sel) => document.querySelector(sel);
@@ -759,11 +776,7 @@
     if (actionLabel && onAction) {
       t.appendChild(el('button', {
         class: 'toast-action',
-        onclick: () => {
-          clearTimeout(showToast._t);
-          t.classList.remove('show');
-          onAction();
-        },
+        onclick: () => { clearTimeout(showToast._t); t.classList.remove('show'); onAction(); },
       }, actionLabel));
       t.classList.add('show');
       showToast._t = setTimeout(() => t.classList.remove('show'), 6000);
@@ -773,6 +786,21 @@
     }
   }
 
+  // Headline used on cards / lists. Ideas always have a title; bug + feature may
+  // (legacy rows backfilled title from the old text), otherwise derive from content.
+  function displayTitle(it) {
+    const t = itemType(it);
+    if (it.title && it.title.trim()) return it.title.trim();
+    if (t === 'bug') return it.expected || it.where_in_app || it.actual || '(bug)';
+    if (t === 'feature') return it.description || it.where_in_app || '(feature)';
+    return it.description || '(idea)';
+  }
+  function cardSubline(it) {
+    const t = itemType(it);
+    if (t === 'bug' || t === 'feature') return it.where_in_app || '';
+    return '';
+  }
+
   // — Navigation —
   function go(view) {
     state.view = view;
@@ -780,270 +808,374 @@
     document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
     $(`#view-${view}`).classList.add('active');
     window.scrollTo(0, 0);
-    if (view === 'capture') {
-      renderCapture();
-      setTimeout(() => $('#capture-input').focus(), 50);
-    }
+    if (view === 'capture') renderCapture();
     if (view === 'triage') renderTriage();
     if (view === 'history') renderHistory();
     if (view === 'export') renderExport();
   }
-
   document.querySelectorAll('[data-go]').forEach((btn) => {
     btn.addEventListener('click', () => go(btn.dataset.go));
   });
 
   // — Data —
-  async function loadPatches() {
+  async function loadItems() {
     try {
-      state.patches = await sbFetch('/patches?select=*&order=created_at.desc') || [];
+      state.items = await sbFetch('/items?select=*&order=created_at.desc') || [];
     } catch (err) {
       console.error('Load failed:', err);
       showToast('Load failed — check connection');
-      state.patches = [];
+      state.items = [];
     }
   }
-
-  async function savePatch(app, text, type) {
-    const row = await sbFetch('/patches', {
-      method: 'POST',
-      body: JSON.stringify({ app, text, type }),
-    });
+  async function createItem(fields) {
+    const row = await sbFetch('/items', { method: 'POST', body: JSON.stringify(fields) });
     const inserted = Array.isArray(row) ? row[0] : row;
-    if (inserted) state.patches.unshift(inserted);
+    if (inserted) state.items.unshift(inserted);
     return inserted;
   }
-
-  async function updatePatch(id, fields) {
-    const row = await sbFetch(`/patches?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(fields),
-    });
+  async function updateItem(id, fields) {
+    const row = await sbFetch(`/items?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fields) });
     const updated = Array.isArray(row) ? row[0] : row;
     if (updated) {
-      const idx = state.patches.findIndex((p) => p.id === id);
-      if (idx >= 0) state.patches[idx] = updated;
+      const idx = state.items.findIndex((p) => p.id === id);
+      if (idx >= 0) state.items[idx] = updated;
     }
     return updated;
   }
-
-  async function deletePatch(id) {
-    await sbFetch(`/patches?id=eq.${id}`, { method: 'DELETE' });
-    state.patches = state.patches.filter((p) => p.id !== id);
+  async function deleteItem(id) {
+    await sbFetch(`/items?id=eq.${id}`, { method: 'DELETE' });
+    state.items = state.items.filter((p) => p.id !== id);
   }
-
-  async function restorePatch(row) {
-    const restored = await sbFetch('/patches', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: row.id,
-        app: row.app,
-        text: row.text,
-        type: patchType(row),
-        status: row.status,
-        created_at: row.created_at,
-      }),
+  async function restoreItem(row) {
+    const body = {};
+    ['id', 'type', 'app', 'title', 'where_in_app', 'expected', 'actual', 'description',
+     'severity', 'status', 'my_guess', 'device_context', 'image_url', 'repo',
+     'promoted_to', 'created_at', 'fixed_at'].forEach((k) => {
+      if (row[k] !== null && row[k] !== undefined) body[k] = row[k];
     });
+    const restored = await sbFetch('/items', { method: 'POST', body: JSON.stringify(body) });
     const r = Array.isArray(restored) ? restored[0] : restored;
     if (r) {
-      state.patches.push(r);
-      state.patches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      state.items.push(r);
+      state.items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
     return r;
   }
-
-  async function patchStatusByIds(ids, status) {
+  async function itemStatusByIds(ids, status) {
     const idList = ids.map((id) => `"${id}"`).join(',');
-    await sbFetch(`/patches?id=in.(${idList})`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    });
-    state.patches.forEach((p) => {
-      if (ids.includes(p.id)) p.status = status;
+    const fields = { status };
+    if (status === 'fixed' || status === 'shipped') fields.fixed_at = new Date().toISOString();
+    await sbFetch(`/items?id=in.(${idList})`, { method: 'PATCH', body: JSON.stringify(fields) });
+    state.items.forEach((p) => {
+      if (ids.includes(p.id)) {
+        p.status = status;
+        if (fields.fixed_at !== undefined) p.fixed_at = fields.fixed_at;
+      }
     });
   }
 
-  async function handleDelete(p) {
-    const snapshot = { ...p };
+  async function handleDelete(it) {
+    const snapshot = { ...it };
     try {
-      await deletePatch(p.id);
+      await deleteItem(it.id);
     } catch (err) {
       showToast('Delete failed');
       return;
     }
     state.editingId = null;
     rerenderCurrentView();
-    showToast('Fix deleted', 'Undo', async () => {
+    showToast('Item deleted', 'Undo', async () => {
       try {
-        await restorePatch(snapshot);
+        await restoreItem(snapshot);
         rerenderCurrentView();
         showToast('Restored');
       } catch (err) {
-        showToast('Undo failed — fix not restored');
+        showToast('Undo failed — item not restored');
       }
     });
   }
 
-  // — Capture view —
-  function renderCapturePills() {
-    const row = $('#capture-pills');
-    row.innerHTML = '';
-    APPS.forEach((app) => {
-      const pill = el('button', {
-        class: `pill ${app}${state.captureSelected === app ? ' selected' : ''}`,
-        onclick: () => {
-          state.captureSelected = app;
-          renderCapturePills();
-        },
-      }, APP_LABEL[app]);
-      row.appendChild(pill);
+  // — Shared form builder (capture + edit) —
+  function buildForm(container, type, values, opts = {}) {
+    const onChange = opts.onChange;
+    container.innerHTML = '';
+    const req = new Set(REQUIRED[type]);
+    FORM_FIELDS[type].forEach((key) => {
+      const def = FIELD_DEFS[key];
+      const group = el('div', { class: 'field' });
+      group.appendChild(el('label', { class: `field-label${req.has(key) ? ' required' : ''}` }, def.label));
+
+      if (def.kind === 'apps') {
+        const row = el('div', { class: 'pills-row' });
+        APPS.forEach((app) => {
+          row.appendChild(el('button', {
+            class: `pill ${app}${values.app === app ? ' selected' : ''}`,
+            type: 'button',
+            dataset: { app },
+            onclick: () => {
+              values.app = app;
+              row.querySelectorAll('.pill').forEach((p) => p.classList.toggle('selected', p.dataset.app === app));
+              if (onChange) onChange();
+            },
+          }, APP_LABEL[app]));
+        });
+        group.appendChild(row);
+      } else if (def.kind === 'severity') {
+        const row = el('div', { class: 'pills-row' });
+        SEVERITIES.forEach((s) => {
+          row.appendChild(el('button', {
+            class: `sev-pill ${s}${values.severity === s ? ' on' : ''}`,
+            type: 'button',
+            dataset: { sev: s },
+            onclick: () => {
+              values.severity = s;
+              row.querySelectorAll('.sev-pill').forEach((p) => p.classList.toggle('on', p.dataset.sev === s));
+              if (onChange) onChange();
+            },
+          }, SEVERITY_LABEL[s]));
+        });
+        group.appendChild(row);
+      } else {
+        const node = el(def.kind === 'textarea' ? 'textarea' : 'input', {
+          class: 'field-input',
+          placeholder: def.placeholder || '',
+          ...(def.kind === 'textarea' ? { rows: '2' } : { type: 'text' }),
+          oninput: (e) => { values[key] = e.target.value; if (onChange) onChange(); },
+        });
+        node.value = values[key] || '';
+        group.appendChild(node);
+      }
+      container.appendChild(group);
     });
   }
 
-  function renderCaptureTypes() {
-    const row = $('#capture-types');
-    row.innerHTML = '';
-    TYPES.forEach((t) => {
-      row.appendChild(el('button', {
-        class: `type-pill ${t}${state.captureType === t ? ' on' : ''}`,
-        onclick: () => {
-          state.captureType = t;
-          renderCaptureTypes();
-        },
-      }, TYPE_LABEL[t]));
+  function formValid(type, values) {
+    return REQUIRED[type].every((k) => {
+      const v = values[k];
+      return v !== undefined && v !== null && String(v).trim() !== '';
     });
+  }
+
+  // — Capture view —
+  function renderCapture() {
+    const block = $('#capture-block');
+    block.innerHTML = '';
+    if (!state.capture.type) renderTypePicker(block);
+    else renderCaptureForm(block);
+    renderCaptureList();
+  }
+
+  function renderTypePicker(block) {
+    const wrap = el('div', { class: 'type-picker' });
+    TYPES.forEach((t) => {
+      wrap.appendChild(el('button', {
+        class: `type-card ${t}`,
+        type: 'button',
+        onclick: () => startCapture(t),
+      },
+        el('span', { class: 'tc-name' }, TYPE_LABEL[t]),
+        el('span', { class: 'tc-desc' }, TYPE_DESC[t]),
+      ));
+    });
+    block.appendChild(wrap);
+  }
+
+  function startCapture(type) {
+    state.capture = { type, values: { app: type === 'idea' ? null : state.lastApp } };
+    renderCapture();
+    setTimeout(() => {
+      const f = $('#capture-block').querySelector('.field-input');
+      if (f) f.focus();
+    }, 40);
+  }
+
+  function renderCaptureForm(block) {
+    const t = state.capture.type;
+    block.appendChild(el('div', { class: 'form-head' },
+      el('span', { class: `form-title ${t}` }, `New ${TYPE_LABEL[t].toLowerCase()}`),
+      el('button', {
+        class: 'change-type',
+        type: 'button',
+        onclick: () => { state.capture = { type: null, values: {} }; renderCapture(); },
+      }, 'Change type'),
+    ));
+
+    const fieldsWrap = el('div', { class: 'form-fields' });
+    block.appendChild(fieldsWrap);
+    buildForm(fieldsWrap, t, state.capture.values, { onChange: updateCaptureSave });
+
+    block.appendChild(el('div', { class: 'save-row' },
+      el('button', { class: 'save-btn', id: 'capture-save', type: 'button', onclick: saveCapture }, 'Save'),
+    ));
+
+    // Cmd/Ctrl+Enter saves from any field.
+    block.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveCapture(); }
+    });
+
+    updateCaptureSave();
+  }
+
+  function updateCaptureSave() {
+    const btn = $('#capture-save');
+    if (btn) btn.disabled = !formValid(state.capture.type, state.capture.values);
+  }
+
+  async function saveCapture() {
+    const t = state.capture.type;
+    const v = state.capture.values;
+    if (!t || !formValid(t, v)) return;
+    const payload = { type: t, app: v.app || null };
+    FORM_FIELDS[t].forEach((k) => {
+      if (k === 'app') return;
+      const val = v[k];
+      if (val !== null && val !== undefined && String(val).trim() !== '') payload[k] = String(val).trim();
+    });
+    const btn = $('#capture-save');
+    if (btn) btn.disabled = true;
+    try {
+      await createItem(payload);
+      if (v.app) { state.lastApp = v.app; localStorage.setItem('patch_last_app', v.app); }
+      state.capture = { type: null, values: {} };
+      renderCapture();
+    } catch (err) {
+      showToast('Save failed');
+      if (btn) btn.disabled = false;
+    }
   }
 
   function renderCaptureList() {
     const list = $('#capture-list');
     list.innerHTML = '';
-    const open = state.patches.filter((p) => p.status === 'open');
-    if (!open.length) {
+    const active = state.items.filter((it) => ACTIVE_STATUSES.includes(it.status));
+    if (!active.length) {
       list.appendChild(el('div', { class: 'empty' }, 'Nothing to fix.'));
       return;
     }
-    open.slice(0, 30).forEach((p) => list.appendChild(renderFixCard(p)));
+    active.slice(0, 40).forEach((it) => list.appendChild(renderItemCard(it)));
   }
 
-  function renderCapture() {
-    renderCapturePills();
-    renderCaptureTypes();
-    renderCaptureList();
-    const input = $('#capture-input');
-    const save = $('#capture-save');
-    save.disabled = !input.value.trim();
-  }
+  // — Item card (shared by all lists) —
+  function renderItemCard(it, tsField = 'created_at') {
+    if (state.editingId === it.id) return renderItemEditing(it, tsField);
 
-  // — Fix card (shared by capture + triage) —
-  function renderFixCard(p, tsField = 'created_at') {
-    if (state.editingId === p.id) return renderFixEditing(p, tsField);
+    const t = itemType(it);
+    const card = el('div', { class: 'fix', dataset: { id: it.id } });
 
-    const card = el('div', { class: 'fix', dataset: { id: p.id } });
+    const left = el('div', { class: 'fix-left' });
+    if (it.app) left.appendChild(el('span', { class: `app-tag ${it.app}` }, APP_LABEL[it.app] || it.app));
+    if (t === 'feature') left.appendChild(el('span', { class: 'type-tag feature' }, 'Feature'));
+    if (t === 'idea') left.appendChild(el('span', { class: 'type-tag idea' }, 'Idea'));
+    if (t === 'bug' && it.severity) left.appendChild(el('span', { class: `sev-chip ${it.severity}` }, SEVERITY_LABEL[it.severity]));
+
     card.appendChild(el('div', { class: 'fix-top' },
-      el('div', { class: 'fix-left' },
-        el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
-        patchType(p) === 'idea' ? el('span', { class: 'type-tag idea' }, 'Idea') : null,
-      ),
-      el('span', { class: `status-chip ${p.status}` }, STATUS_LABEL[p.status]),
+      left,
+      el('span', { class: `status-chip ${it.status}` }, STATUS_LABEL[it.status] || it.status),
     ));
-    card.appendChild(el('div', { class: `fix-text${p.status === 'wont' ? ' wont' : ''}` }, p.text));
-    card.appendChild(el('div', { class: 'fix-ts' }, formatTimestamp(p[tsField] || p.created_at)));
 
-    card.addEventListener('click', () => {
-      state.editingId = p.id;
-      rerenderCurrentView();
-    });
+    card.appendChild(el('div', { class: `fix-text${it.status === 'parked' ? ' parked' : ''}` }, displayTitle(it)));
+    const sub = cardSubline(it);
+    if (sub) card.appendChild(el('div', { class: 'fix-sub' }, sub));
+    card.appendChild(el('div', { class: 'fix-ts' }, formatTimestamp(it[tsField] || it.created_at)));
+
+    card.addEventListener('click', () => { state.editingId = it.id; rerenderCurrentView(); });
     return card;
   }
 
-  function renderFixEditing(p, tsField = 'created_at') {
-    const card = el('div', { class: 'fix editing', dataset: { id: p.id } });
+  function renderItemEditing(it, tsField = 'created_at') {
+    const card = el('div', { class: 'fix editing', dataset: { id: it.id } });
+    const draft = { type: itemType(it), app: it.app || null };
+    CONTENT_FIELDS.forEach((k) => { draft[k] = it[k] != null ? it[k] : (k === 'severity' ? null : ''); });
+
     card.appendChild(el('div', { class: 'fix-top' },
-      el('span', { class: `app-tag ${p.app}` }, APP_LABEL[p.app]),
-      el('span', { class: 'fix-ts' }, formatTimestamp(p[tsField] || p.created_at)),
+      el('span', { class: 'fix-ts' }, formatTimestamp(it[tsField] || it.created_at)),
     ));
-    const textarea = el('textarea', { class: 'fix-edit-text' });
-    textarea.value = p.text;
-    card.appendChild(textarea);
+
+    const saveBtn = el('button', { class: 'btn-primary', type: 'button' }, 'Save');
+    const updateBtn = () => { saveBtn.disabled = !formValid(draft.type, draft); };
+
+    const fieldsWrap = el('div', { class: 'form-fields' });
 
     const typeRow = el('div', { class: 'type-row' });
-    let currentType = patchType(p);
     TYPES.forEach((t) => {
-      const btn = el('button', {
-        class: `type-pill ${t}${currentType === t ? ' on' : ''}`,
-        onclick: () => {
-          currentType = t;
-          typeRow.querySelectorAll('.type-pill').forEach((b) => {
-            b.classList.toggle('on', b.dataset.type === t);
-          });
-        },
+      typeRow.appendChild(el('button', {
+        class: `type-pill ${t}${draft.type === t ? ' on' : ''}`,
+        type: 'button',
         dataset: { type: t },
-      }, TYPE_LABEL[t]);
-      typeRow.appendChild(btn);
+        onclick: () => {
+          draft.type = t;
+          typeRow.querySelectorAll('.type-pill').forEach((b) => b.classList.toggle('on', b.dataset.type === t));
+          buildForm(fieldsWrap, t, draft, { onChange: updateBtn });
+          updateBtn();
+        },
+      }, TYPE_LABEL[t]));
     });
     card.appendChild(typeRow);
 
+    card.appendChild(fieldsWrap);
+    buildForm(fieldsWrap, draft.type, draft, { onChange: updateBtn });
+
+    card.appendChild(el('div', { class: 'field-label' }, 'Status'));
     const statusRow = el('div', { class: 'fix-edit-status' });
-    let currentStatus = p.status;
+    let currentStatus = it.status;
     STATUSES.forEach((s) => {
-      const btn = el('button', {
+      statusRow.appendChild(el('button', {
         class: `status-pick ${s}${currentStatus === s ? ' on' : ''}`,
+        type: 'button',
+        dataset: { status: s },
         onclick: () => {
           currentStatus = s;
-          statusRow.querySelectorAll('.status-pick').forEach((b) => {
-            b.classList.toggle('on', b.dataset.status === s);
-          });
+          statusRow.querySelectorAll('.status-pick').forEach((b) => b.classList.toggle('on', b.dataset.status === s));
         },
-        dataset: { status: s },
-      }, STATUS_LABEL[s]);
-      statusRow.appendChild(btn);
+      }, STATUS_LABEL[s]));
     });
     card.appendChild(statusRow);
 
-    const actions = el('div', { class: 'fix-edit-actions' });
-    const left = el('div', { class: 'left' },
-      el('button', {
-        class: 'btn-text danger',
-        onclick: () => handleDelete(p),
-      }, 'Delete'),
-    );
-    const right = el('div', { class: 'right' },
-      el('button', {
-        class: 'btn-text',
-        onclick: () => {
-          state.editingId = null;
-          rerenderCurrentView();
-        },
-      }, 'Cancel'),
-      el('button', {
-        class: 'btn-primary',
-        onclick: async () => {
-          const newText = textarea.value.trim();
-          if (!newText) { showToast('Text required'); return; }
-          const fields = {};
-          if (newText !== p.text) fields.text = newText;
-          if (currentStatus !== p.status) fields.status = currentStatus;
-          if (currentType !== patchType(p)) fields.type = currentType;
-          if (Object.keys(fields).length === 0) {
-            state.editingId = null;
-            rerenderCurrentView();
-            return;
-          }
-          try {
-            await updatePatch(p.id, fields);
-            state.editingId = null;
-            rerenderCurrentView();
-          } catch (err) {
-            showToast('Save failed');
-          }
-        },
-      }, 'Save'),
-    );
-    actions.appendChild(left);
-    actions.appendChild(right);
-    card.appendChild(actions);
+    saveBtn.addEventListener('click', async () => {
+      if (!formValid(draft.type, draft)) { showToast('Fill required fields'); return; }
+      const norm = (v) => (v === '' || v == null) ? null : v;
+      const fields = {};
+      if (draft.type !== itemType(it)) fields.type = draft.type;
+      const newApp = draft.app || null;
+      if (newApp !== (it.app || null)) fields.app = newApp;
+      // Only touch fields belonging to the (possibly new) type — leaves orphan
+      // fields from a prior type untouched rather than dropping data.
+      FORM_FIELDS[draft.type].forEach((k) => {
+        if (k === 'app') return;
+        const newV = norm(draft[k]);
+        const oldV = norm(it[k]);
+        if (newV !== oldV) fields[k] = newV;
+      });
+      if (currentStatus !== it.status) {
+        fields.status = currentStatus;
+        if (currentStatus === 'fixed' || currentStatus === 'shipped') fields.fixed_at = new Date().toISOString();
+        else if (it.status === 'fixed' || it.status === 'shipped') fields.fixed_at = null;
+      }
+      if (Object.keys(fields).length === 0) { state.editingId = null; rerenderCurrentView(); return; }
+      try {
+        await updateItem(it.id, fields);
+        state.editingId = null;
+        rerenderCurrentView();
+      } catch (err) {
+        showToast('Save failed');
+      }
+    });
 
-    setTimeout(() => textarea.focus(), 20);
+    card.appendChild(el('div', { class: 'fix-edit-actions' },
+      el('div', { class: 'left' },
+        el('button', { class: 'btn-text danger', type: 'button', onclick: () => handleDelete(it) }, 'Delete'),
+      ),
+      el('div', { class: 'right' },
+        el('button', {
+          class: 'btn-text', type: 'button',
+          onclick: () => { state.editingId = null; rerenderCurrentView(); },
+        }, 'Cancel'),
+        saveBtn,
+      ),
+    ));
+
+    updateBtn();
+    setTimeout(() => { const f = fieldsWrap.querySelector('.field-input'); if (f) f.focus(); }, 20);
     return card;
   }
 
@@ -1052,39 +1184,6 @@
     if (state.view === 'triage') renderTriage();
     if (state.view === 'history') renderHistory();
   }
-
-  // — Capture save handler —
-  $('#capture-input').addEventListener('input', (e) => {
-    $('#capture-save').disabled = !e.target.value.trim();
-  });
-  $('#capture-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      $('#capture-save').click();
-    }
-  });
-  $('#capture-save').addEventListener('click', async () => {
-    const input = $('#capture-input');
-    const text = input.value.trim();
-    if (!text) return;
-    const app = state.captureSelected;
-    const type = state.captureType;
-    $('#capture-save').disabled = true;
-    try {
-      await savePatch(app, text, type);
-      state.lastApp = app;
-      localStorage.setItem('patch_last_app', app);
-      input.value = '';
-      state.captureType = 'bug';
-      renderCaptureTypes();
-      renderCaptureList();
-      input.focus();
-    } catch (err) {
-      showToast('Save failed');
-    } finally {
-      $('#capture-save').disabled = !input.value.trim();
-    }
-  });
 
   // — Triage view —
   function renderTriage() {
@@ -1104,73 +1203,80 @@
     const body = $('#triage-body');
     body.innerHTML = '';
 
-    const counts = {};
-    APPS.forEach((a) => { counts[a] = { open: 0, doing: 0, done: 0, wont: 0, total: 0, fixes: [] }; });
-    state.patches.forEach((p) => {
-      counts[p.app][p.status]++;
-      counts[p.app].total++;
-      if (state.triageFilters.has(p.status)) counts[p.app].fixes.push(p);
+    const groups = {};
+    APPS.forEach((a) => { groups[a] = newGroup(); });
+    groups.none = newGroup();
+    state.items.forEach((it) => {
+      const key = it.app && groups[it.app] ? it.app : 'none';
+      groups[key].counts[it.status] = (groups[key].counts[it.status] || 0) + 1;
+      groups[key].total++;
+      if (state.triageFilters.has(it.status)) groups[key].fixes.push(it);
     });
 
-    const sorted = APPS.slice().sort((a, b) => {
-      const ao = counts[a].open + counts[a].doing;
-      const bo = counts[b].open + counts[b].doing;
+    const order = APPS.slice();
+    if (groups.none.total) order.push('none');
+    const sorted = order.sort((a, b) => {
+      const ao = activeCount(groups[a]);
+      const bo = activeCount(groups[b]);
       if (bo !== ao) return bo - ao;
-      return APPS.indexOf(a) - APPS.indexOf(b);
+      return order.indexOf(a) - order.indexOf(b);
     });
 
     sorted.forEach((app) => {
-      const c = counts[app];
+      const g = groups[app];
       const section = el('div', { class: `triage-section${state.triageOpenSections.has(app) ? ' open' : ''}` });
-      const summary = summaryText(c);
-      const header = el('div', { class: 'triage-header', onclick: () => {
-        if (state.triageOpenSections.has(app)) state.triageOpenSections.delete(app);
-        else state.triageOpenSections.add(app);
-        renderTriage();
-      }},
+      const header = el('div', {
+        class: 'triage-header',
+        onclick: () => {
+          if (state.triageOpenSections.has(app)) state.triageOpenSections.delete(app);
+          else state.triageOpenSections.add(app);
+          renderTriage();
+        },
+      },
         el('div', {},
-          el('span', { class: `triage-name ${app}` }, APP_LABEL[app]),
-          el('span', { class: 'triage-count' }, summary),
+          el('span', { class: `triage-name ${app}` }, app === 'none' ? 'Unfiled' : APP_LABEL[app]),
+          el('span', { class: 'triage-count' }, summaryText(g)),
         ),
         el('span', { class: 'triage-chev' }, '▸'),
       );
       section.appendChild(header);
 
       const fixesWrap = el('div', { class: 'triage-fixes' });
-      if (c.fixes.length === 0) {
-        fixesWrap.appendChild(el('div', { class: 'empty', html: 'Nothing matching the filter.' }));
+      if (g.fixes.length === 0) {
+        fixesWrap.appendChild(el('div', { class: 'empty' }, 'Nothing matching the filter.'));
       } else {
-        c.fixes.forEach((p) => fixesWrap.appendChild(renderFixCard(p)));
+        g.fixes.forEach((it) => fixesWrap.appendChild(renderItemCard(it)));
       }
       section.appendChild(fixesWrap);
       body.appendChild(section);
     });
   }
 
-  function summaryText(c) {
+  function newGroup() { return { counts: {}, total: 0, fixes: [] }; }
+  function activeCount(g) { return ACTIVE_STATUSES.reduce((n, s) => n + (g.counts[s] || 0), 0); }
+  function summaryText(g) {
     const parts = [];
-    if (c.open) parts.push(`${c.open} open`);
-    if (c.doing) parts.push(`${c.doing} doing`);
-    if (!parts.length) {
-      if (c.total === 0) return '0';
-      const done = c.done + c.wont;
-      if (done) return `${done} closed`;
-    }
-    return parts.join(' · ');
+    if (g.counts.open) parts.push(`${g.counts.open} open`);
+    if (g.counts.in_progress) parts.push(`${g.counts.in_progress} in progress`);
+    if (g.counts.needs_info) parts.push(`${g.counts.needs_info} needs info`);
+    if (parts.length) return parts.join(' · ');
+    if (g.total === 0) return '0';
+    const closed = (g.counts.fixed || 0) + (g.counts.shipped || 0) + (g.counts.parked || 0);
+    return closed ? `${closed} closed` : '0';
   }
 
   // — History view —
   function renderHistory() {
     const body = $('#history-body');
     body.innerHTML = '';
-    const rows = state.patches.slice().sort((a, b) =>
+    const rows = state.items.slice().sort((a, b) =>
       new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
     );
     if (!rows.length) {
       body.appendChild(el('div', { class: 'empty' }, 'No activity yet.'));
       return;
     }
-    rows.slice(0, 100).forEach((p) => body.appendChild(renderFixCard(p, 'updated_at')));
+    rows.slice(0, 100).forEach((it) => body.appendChild(renderItemCard(it, 'updated_at')));
   }
 
   // — Export view —
@@ -1179,11 +1285,11 @@
 
     const pills = $('#export-pills');
     pills.innerHTML = '';
-    APPS.forEach((app) => {
+    [...APPS, 'all'].forEach((app) => {
       pills.appendChild(el('button', {
         class: `pill ${app}${state.exportApp === app ? ' selected' : ''}`,
         onclick: () => { state.exportApp = app; renderExport(); },
-      }, APP_LABEL[app]));
+      }, app === 'all' ? 'All' : APP_LABEL[app]));
     });
 
     const filters = $('#export-filters');
@@ -1205,68 +1311,90 @@
     });
 
     const matches = exportMatches();
-
     const preview = $('#export-preview');
     preview.classList.remove('empty-state');
     if (!matches.length) {
       preview.classList.add('empty-state');
-      preview.textContent = 'No matching fixes.';
+      preview.textContent = 'No matching items.';
     } else {
       preview.textContent = buildExportText(matches);
     }
-
     $('#export-copy').disabled = !matches.length;
 
     const bulk = $('#export-mark-bulk');
     const hasOpen = matches.some((p) => p.status === 'open');
-    const hasDoing = matches.some((p) => p.status === 'doing');
+    const hasInProgress = matches.some((p) => p.status === 'in_progress');
     if (hasOpen) {
-      bulk.textContent = 'Mark all as Doing';
-      bulk.dataset.mode = 'doing';
+      bulk.textContent = 'Mark all as In progress';
+      bulk.dataset.mode = 'in_progress';
       bulk.disabled = false;
-    } else if (hasDoing) {
-      bulk.textContent = 'Mark all as Done';
-      bulk.dataset.mode = 'done';
+    } else if (hasInProgress) {
+      bulk.textContent = 'Mark all as Fixed';
+      bulk.dataset.mode = 'fixed';
       bulk.disabled = false;
     } else {
-      bulk.textContent = 'Mark all as Doing';
-      bulk.dataset.mode = 'doing';
+      bulk.textContent = 'Mark all as In progress';
+      bulk.dataset.mode = 'in_progress';
       bulk.disabled = true;
     }
   }
 
   function exportMatches() {
-    return state.patches
+    return state.items
       .filter((p) => (state.exportApp === 'all' || p.app === state.exportApp) && state.exportFilters.has(p.status))
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   }
 
-  // Numbered list; splits into Bugs/Ideas groups only when both are present.
-  function promptGroup(items) {
-    const bugs = items.filter((p) => patchType(p) === 'bug');
-    const ideas = items.filter((p) => patchType(p) === 'idea');
-    if (bugs.length && ideas.length) {
-      const lines = [`Bugs (${bugs.length}):`];
-      bugs.forEach((p, i) => lines.push(`${i + 1}. ${p.text}`));
-      lines.push('', `Ideas (${ideas.length}):`);
-      ideas.forEach((p, i) => lines.push(`${i + 1}. ${p.text}`));
-      return lines.join('\n');
+  function exportLine(it) {
+    const t = itemType(it);
+    if (t === 'bug') {
+      if (it.expected || it.actual) {
+        const where = it.where_in_app ? `${it.where_in_app}: ` : '';
+        return `${where}expected ${it.expected || '?'} — got ${it.actual || '?'}`;
+      }
+      return displayTitle(it);
     }
-    return items.map((p, i) => `${i + 1}. ${p.text}`).join('\n');
+    if (t === 'feature') {
+      const where = it.where_in_app ? `${it.where_in_app}: ` : '';
+      return `${where}${it.description || it.title || '(feature)'}`;
+    }
+    return it.title
+      ? (it.description ? `${it.title} — ${it.description}` : it.title)
+      : (it.description || '(idea)');
+  }
+
+  // Numbered list; splits into type-labeled groups only when more than one type is present.
+  function promptGroup(items) {
+    const present = TYPES.filter((t) => items.some((it) => itemType(it) === t));
+    if (present.length <= 1) {
+      return items.map((it, i) => `${i + 1}. ${exportLine(it)}`).join('\n');
+    }
+    const labels = { bug: 'Bugs', feature: 'Features', idea: 'Ideas' };
+    const blocks = [];
+    present.forEach((t) => {
+      const group = items.filter((it) => itemType(it) === t);
+      const lines = [`${labels[t]} (${group.length}):`];
+      group.forEach((it, i) => lines.push(`${i + 1}. ${exportLine(it)}`));
+      blocks.push(lines.join('\n'));
+    });
+    return blocks.join('\n\n');
   }
 
   function buildExportText(matches) {
     if (state.exportFormat === 'plain') {
-      return matches.map((p) => `- ${p.text}`).join('\n');
+      return matches.map((it) => `- ${exportLine(it)}`).join('\n');
     }
     const onlyOpen = state.exportFilters.size === 1 && state.exportFilters.has('open');
-    const lead = onlyOpen ? 'Open fixes' : 'Fixes';
+    const lead = onlyOpen ? 'Open items' : 'Items';
 
     if (state.exportApp === 'all') {
       const blocks = [];
-      APPS.forEach((app) => {
-        const items = matches.filter((p) => p.app === app);
-        if (items.length) blocks.push(`### ${APP_LABEL[app]} (${items.length})\n${promptGroup(items)}`);
+      [...APPS, 'none'].forEach((app) => {
+        const items = matches.filter((p) => (app === 'none' ? !p.app : p.app === app));
+        if (items.length) {
+          const heading = app === 'none' ? 'Unfiled' : APP_LABEL[app];
+          blocks.push(`### ${heading} (${items.length})\n${promptGroup(items)}`);
+        }
       });
       return [
         `${lead} across the suite (${matches.length}):`,
@@ -1278,21 +1406,19 @@
     }
 
     const app = state.exportApp;
-    const hasBoth = matches.some((p) => patchType(p) === 'bug')
-      && matches.some((p) => patchType(p) === 'idea');
     const header = `${lead} for ${APP_LABEL[app]} (${matches.length}):`;
-    const body = promptGroup(matches);
     const closing = `Review each, propose changes to ${app}-spec.md, then implement.`;
-    return (hasBoth ? [header, '', body, '', closing] : [header, body, '', closing]).join('\n');
+    return [header, '', promptGroup(matches), '', closing].join('\n');
   }
 
   $('#export-copy').addEventListener('click', async () => {
     const matches = exportMatches();
     if (!matches.length) return;
     const text = buildExportText(matches);
+    const label = `Copied — ${matches.length} ${matches.length === 1 ? 'item' : 'items'}`;
     try {
       await navigator.clipboard.writeText(text);
-      showToast(`Copied — ${matches.length} ${matches.length === 1 ? 'fix' : 'fixes'}`);
+      showToast(label);
     } catch (err) {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -1300,25 +1426,24 @@
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      showToast(`Copied — ${matches.length} ${matches.length === 1 ? 'fix' : 'fixes'}`);
+      showToast(label);
     }
   });
 
   $('#export-mark-bulk').addEventListener('click', async () => {
-    const mode = $('#export-mark-bulk').dataset.mode || 'doing';
-    const fromStatus = mode === 'done' ? 'doing' : 'open';
-    const toStatus = mode === 'done' ? 'done' : 'doing';
-    const toLabel = mode === 'done' ? 'Done' : 'Doing';
-    const ids = state.patches
+    const mode = $('#export-mark-bulk').dataset.mode || 'in_progress';
+    const fromStatus = mode === 'fixed' ? 'in_progress' : 'open';
+    const toStatus = mode === 'fixed' ? 'fixed' : 'in_progress';
+    const ids = state.items
       .filter((p) => (state.exportApp === 'all' || p.app === state.exportApp) && p.status === fromStatus)
       .map((p) => p.id);
     if (!ids.length) return;
     try {
-      await patchStatusByIds(ids, toStatus);
+      await itemStatusByIds(ids, toStatus);
       renderExport();
-      showToast(`Marked ${ids.length} as ${toLabel}`, 'Undo', async () => {
+      showToast(`Marked ${ids.length} as ${STATUS_LABEL[toStatus]}`, 'Undo', async () => {
         try {
-          await patchStatusByIds(ids, fromStatus);
+          await itemStatusByIds(ids, fromStatus);
           renderExport();
           showToast(`Reverted ${ids.length} to ${STATUS_LABEL[fromStatus]}`);
         } catch (err) {
@@ -1332,7 +1457,7 @@
 
   // — Init —
   (async function init() {
-    await loadPatches();
+    await loadItems();
     go('capture');
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
