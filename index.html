@@ -144,6 +144,7 @@
     padding: 2px;
   }
   .change-type:hover { color: var(--text-muted); }
+  .form-note { font-size: 12px; color: var(--text-faint); margin-bottom: 12px; padding-left: 2px; }
 
   .field { margin-bottom: 12px; }
   .field-label {
@@ -756,6 +757,7 @@
     items: [],
     lastApp: localStorage.getItem('patch_last_app') || 'course',
     capture: { type: null, values: {} },
+    promoteFromId: null,
     queueTab: 'bug',
     editingId: null,
     triageOpenSections: new Set(),
@@ -825,6 +827,7 @@
   function cardSubline(it) {
     const t = itemType(it);
     if (t === 'bug' || t === 'feature') return it.where_in_app || '';
+    if (t === 'idea' && it.promoted_to) return 'Promoted to feature';
     return '';
   }
 
@@ -1008,8 +1011,30 @@
   }
 
   function startCapture(type) {
+    state.promoteFromId = null;
     state.capture = { type, values: { app: type === 'idea' ? null : state.lastApp } };
     renderCapture();
+    setTimeout(() => {
+      const f = $('#capture-block').querySelector('.field-input');
+      if (f) f.focus();
+    }, 40);
+  }
+
+  // Open the feature form prefilled from an idea; the idea is parked on save.
+  function startPromote(idea) {
+    state.editingId = null;
+    state.promoteFromId = idea.id;
+    state.capture = {
+      type: 'feature',
+      values: {
+        app: idea.app || state.lastApp,
+        where_in_app: '',
+        description: idea.description || '',
+        my_guess: '',
+        image_url: '',
+      },
+    };
+    go('capture');
     setTimeout(() => {
       const f = $('#capture-block').querySelector('.field-input');
       if (f) f.focus();
@@ -1023,9 +1048,13 @@
       el('button', {
         class: 'change-type',
         type: 'button',
-        onclick: () => { state.capture = { type: null, values: {} }; renderCapture(); },
+        onclick: () => { state.capture = { type: null, values: {} }; state.promoteFromId = null; renderCapture(); },
       }, 'Change type'),
     ));
+
+    if (state.promoteFromId) {
+      block.appendChild(el('div', { class: 'form-note' }, 'Promoted from an idea — add where it lives.'));
+    }
 
     const fieldsWrap = el('div', { class: 'form-fields' });
     block.appendChild(fieldsWrap);
@@ -1061,11 +1090,22 @@
     const btn = $('#capture-save');
     if (btn) btn.disabled = true;
     try {
-      await createItem(payload);
+      const inserted = await createItem(payload);
       if (v.app) { state.lastApp = v.app; localStorage.setItem('patch_last_app', v.app); }
+      let promoted = false;
+      if (state.promoteFromId && t === 'feature' && inserted) {
+        try {
+          await updateItem(state.promoteFromId, { status: 'parked', promoted_to: inserted.id });
+          promoted = true;
+        } catch (e) {
+          // Feature was created; parking the source idea failed — leave the idea as-is.
+        }
+      }
+      state.promoteFromId = null;
       state.queueTab = t;
       state.capture = { type: null, values: {} };
       renderCapture();
+      if (promoted) showToast('Promoted to feature');
     } catch (err) {
       showToast('Save failed');
       if (btn) btn.disabled = false;
@@ -1221,10 +1261,17 @@
       }
     });
 
+    const leftActions = el('div', { class: 'left' },
+      el('button', { class: 'btn-text danger', type: 'button', onclick: () => handleDelete(it) }, 'Delete'),
+    );
+    if (itemType(it) === 'idea') {
+      leftActions.appendChild(el('button', {
+        class: 'btn-text', type: 'button',
+        onclick: () => startPromote(it),
+      }, 'Promote to feature'));
+    }
     card.appendChild(el('div', { class: 'fix-edit-actions' },
-      el('div', { class: 'left' },
-        el('button', { class: 'btn-text danger', type: 'button', onclick: () => handleDelete(it) }, 'Delete'),
-      ),
+      leftActions,
       el('div', { class: 'right' },
         el('button', {
           class: 'btn-text', type: 'button',
