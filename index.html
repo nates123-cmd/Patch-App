@@ -685,16 +685,83 @@
 
 <div class="toast" id="toast"></div>
 
+<div id="otp-gate" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;text-align:center">
+    <div style="font-size:1.6rem;font-weight:700;color:var(--accent)">Patch</div>
+    <p id="otp-msg" style="color:var(--text-muted);font-size:.95rem">Sign in with your email. We'll send you an 8-digit code.</p>
+    <input class="field-input" id="otp-email" type="email" placeholder="you@example.com" autocomplete="email" />
+    <input class="field-input" id="otp-code" type="text" inputmode="numeric" maxlength="8" placeholder="8-digit code" autocomplete="one-time-code" style="display:none;letter-spacing:4px;text-align:center" />
+    <button class="btn-primary" id="otp-send">Email me a code</button>
+    <button class="btn-primary" id="otp-verify" style="display:none">Sign in</button>
+    <button class="btn-text" id="otp-back" style="display:none">Use a different email</button>
+    <p id="otp-err" style="color:var(--danger);font-size:.85rem;display:none"></p>
+    <p style="color:var(--text-faint);font-size:.78rem">Your captures are private to your account.</p>
+  </div>
+</div>
+
 <script>
   // — Supabase config (shared project with the rest of the suite) —
   const SB_URL = 'https://xsmnfcmtbpeaccnyinkr.supabase.co';
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzbW5mY210YnBlYWNjbnlpbmtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzODQ3MjksImV4cCI6MjA5Mzk2MDcyOX0.flUt1SAkkt1ppcKCR2XnPKbAaS4PjCLMzi3Gu08jVWo';
 
+  // ── Suite auth (Supabase email OTP, 8-digit). Shared session under the
+  // supabase-js key → one sign-in across the same-origin suite. ──
+  const SB_AUTH_KEY = 'sb-xsmnfcmtbpeaccnyinkr-auth-token';
+  function _authSession() { try { return JSON.parse(localStorage.getItem(SB_AUTH_KEY) || 'null'); } catch (e) { return null; } }
+  function _setAuthSession(x) { if (x && x.access_token) localStorage.setItem(SB_AUTH_KEY, JSON.stringify(x)); else localStorage.removeItem(SB_AUTH_KEY); }
+  function hasSession() { const x = _authSession(); return !!(x && x.access_token); }
+  function _sessionExpired(x) { const exp = x && x.expires_at ? x.expires_at * 1000 : 0; return Date.now() > exp - 60000; }
+  async function _refreshSession() {
+    const x = _authSession(); if (!x || !x.refresh_token) return null;
+    try {
+      const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: x.refresh_token }) });
+      if (!r.ok) { _setAuthSession(null); return null; }
+      const ns = await r.json(); _setAuthSession(ns); return ns;
+    } catch (e) { return null; }
+  }
+  async function authToken() { let x = _authSession(); if (!x || !x.access_token) return null; if (_sessionExpired(x)) x = await _refreshSession(); return (x && x.access_token) || null; }
+  async function sbBearer() { return (await authToken()) || SB_KEY; }
+  async function otpSend(email) {
+    const r = await fetch(`${SB_URL}/auth/v1/otp`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, create_user: true }) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.msg || e.error_description || e.error || 'Could not send code'); }
+  }
+  async function otpVerify(email, token) {
+    const r = await fetch(`${SB_URL}/auth/v1/verify`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, token, type: 'email' }) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.msg || e.error_description || e.error || 'Invalid or expired code'); }
+    const x = await r.json(); _setAuthSession(x); return x;
+  }
+  function signOut() { _setAuthSession(null); showOtpGate(); }
+  function showOtpGate() {
+    const gate = document.getElementById('otp-gate');
+    const emailEl = document.getElementById('otp-email'), codeEl = document.getElementById('otp-code');
+    const sendBtn = document.getElementById('otp-send'), verBtn = document.getElementById('otp-verify');
+    const backBtn = document.getElementById('otp-back'), errEl = document.getElementById('otp-err'), msgEl = document.getElementById('otp-msg');
+    const showErr = (m) => { errEl.textContent = m || ''; errEl.style.display = m ? 'block' : 'none'; };
+    const toEmail = () => { codeEl.style.display = 'none'; verBtn.style.display = 'none'; backBtn.style.display = 'none'; emailEl.style.display = ''; sendBtn.style.display = ''; msgEl.textContent = "Sign in with your email. We'll send you an 8-digit code."; showErr(''); };
+    toEmail(); gate.style.display = 'flex';
+    sendBtn.onclick = async () => {
+      const email = emailEl.value.trim(); if (!email) { showErr('Enter your email.'); return; }
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…'; showErr('');
+      try { await otpSend(email); emailEl.style.display = 'none'; sendBtn.style.display = 'none'; codeEl.style.display = ''; verBtn.style.display = ''; backBtn.style.display = ''; msgEl.textContent = 'Enter the 8-digit code sent to ' + email + '.'; codeEl.value = ''; codeEl.focus(); }
+      catch (e) { showErr(e.message); }
+      sendBtn.disabled = false; sendBtn.textContent = 'Email me a code';
+    };
+    verBtn.onclick = async () => {
+      const email = emailEl.value.trim(), code = codeEl.value.trim();
+      if (code.length !== 8) { showErr('The code is 8 digits.'); return; }
+      verBtn.disabled = true; verBtn.textContent = 'Verifying…'; showErr('');
+      try { await otpVerify(email, code); gate.style.display = 'none'; startApp(); }
+      catch (e) { showErr(e.message); verBtn.disabled = false; verBtn.textContent = 'Sign in'; }
+    };
+    backBtn.onclick = toEmail;
+    codeEl.oninput = () => { codeEl.value = codeEl.value.replace(/\D/g, '').slice(0, 8); };
+  }
+
   async function sbFetch(path, opts = {}) {
     const url = `${SB_URL}/rest/v1${path}`;
     const headers = {
       apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
+      Authorization: `Bearer ${await sbBearer()}`,
       'Content-Type': 'application/json',
       ...(opts.headers || {}),
     };
@@ -1579,13 +1646,17 @@
     }
   });
 
-  // — Init —
-  (async function init() {
+  // — Init — (gated on Supabase auth)
+  async function startApp() {
+    document.getElementById('otp-gate').style.display = 'none';
     await loadItems();
     go('capture');
+  }
+  (function init() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
+    if (hasSession()) startApp(); else showOtpGate();
   })();
 </script>
 </body>
