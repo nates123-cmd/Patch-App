@@ -1,8 +1,8 @@
 # Patch — Spec
 
-**Owns:** Fix capture across the suite. Log fixes on the go, organize by app, hand off to Claude Code for execution.
+**Owns:** Structured fix-capture across the suite. Log bugs, features, and ideas on the go; organize by app; hand off Claude-Code-ready prompts.
 
-**Vibe:** Workshop. Fluorescent-lit, clipboard, grease pencil. The app you open the moment you notice something broken.
+**Vibe:** Workshop. Fluorescent-lit, clipboard, grease pencil. The app you open the moment you notice something broken — or think of something to build.
 
 **Dialect:** Functional. Card-stack, scannable, fast.
 
@@ -10,211 +10,149 @@
 
 ## Color Weather
 
-Graphite background + warning-yellow accent (think construction sign yellow, not pastel). Sits tonally adjacent to Tick — utilitarian, night-shift, things-that-need-attention. Status chips use small color variations (open = yellow, doing = blue, done = muted green, won't = struck-through gray).
+Graphite background + warning-yellow accent (construction-sign yellow, not pastel). Sits tonally adjacent to Tick — utilitarian, night-shift, things-that-need-attention. System-following dark/light; dark is the home state, light is incidental.
 
-System-following dark/light. Dark is the home state; light mode is incidental.
+Each suite app has an accent used for its pills/tags: course, stock, ink, tide, tick, break, today, crate, patch. The three item types also carry a tint — **bug** = accent yellow, **feature** = tide blue, **idea** = tick lavender.
+
+---
+
+## Core Model
+
+Patch captures three **item types**. Type is chosen first, before anything else, because it determines which fields you fill.
+
+- **Bug** — "something is broken." Where it lives, what you expected, what actually happened, how bad it is.
+- **Feature** — "something to build." Where it lives and a description.
+- **Idea** — "a thought to weigh." A title and a description. Not tied to an app by default. Can later be **promoted to a feature**.
+
+Type is a *handoff category*, not a priority scale. All three types are exported and handed to Claude Code together; the only difference is how the export prompt frames them.
+
+### Fields per type
+
+Required fields are marked •. Everything else is optional.
+
+| Field | Bug | Feature | Idea |
+|---|---|---|---|
+| `app` | • | • | optional |
+| `where_in_app` | • | • | — |
+| `expected` | • | — | — |
+| `actual` | • | — | — |
+| `severity` (blocker / annoying / polish) | • | — | — |
+| `description` | — | • | • |
+| `title` | — | — | • |
+| `my_guess` | optional | optional | — |
+| `device_context` | optional | — | — |
+| `image_url` | optional | optional | — |
+
+Per-type requiredness is enforced **in the app** (the Save button stays disabled until required fields are filled), not by the database — every column except `type`/`status`/timestamps is nullable so the schema doesn't fight type changes.
+
+### Statuses
+
+A six-state lifecycle: `open` → `in_progress` → `fixed` / `shipped`, with `needs_info` and `parked` as side states.
+
+- **Active** = `open`, `in_progress`, `needs_info` — these are what the home queue and triage show by default.
+- **Closed** = `fixed`, `shipped`, `parked`.
+- `fixed` / `shipped` stamp `fixed_at`; moving back out clears it.
 
 ---
 
 ## Core Screens
 
+Four views, switched via the top-right utility links (no modals): **Capture** (home), **Triage**, **History**, **Export**.
+
 ### 1. Capture (Home)
 
-The whole point of the app. Optimized for 4-second logging.
+The whole point of the app.
 
-**Top of screen:**
-- "Patch" title, bold, left-aligned (suite convention)
-- Utility links top-right: triage view toggle, export
+**Type picker** — three large cards: Bug / Feature / Idea, each with a one-line description. Tap one to open its form. ("Change type" returns to the picker.)
 
-**The capture block (the hero):**
-- App pills in a single row: Tick / Break / Tide / Still / Course / Patch / Amanda / Stock / **All**
-  - Each pill colored with that app's accent; "All" is neutral-toned (suite-wide fix, not app-specific)
-  - Tap to select; selected pill stays highlighted
-  - Last-used pill is pre-selected on app open
-- Below the pills: big text input, autofocused on app open, placeholder "What's broken?"
-- **Type toggle** below the text input: two pills, **Bug** / **Idea**
-  - Placed under the input (not the app pills) so the capture flow reads top-to-bottom: what app → what's broken → bug or idea → save
-  - Bug is the default and re-selects on every save (it is *not* sticky — bug is the home state, ideas are the exception you opt into)
-  - Idea = a design spec / note / thought, not a defect
-- Single "Save" button below (or enter-to-save on desktop)
+**Per-type form** — only the fields for that type, required fields dotted, text input autofocused. `app` is a row of color-coded pills; the **last-used app is pre-selected** (persisted in `localStorage` as `patch_last_app`); ideas start app-less. Severity is a three-pill row (Blocker / Annoying / Polish). Save is enter-to-save via **Cmd/Ctrl+Enter**, or the button. No toast on save — the item appearing in the queue is the feedback.
 
-No modal. No "add fix" button. The capture surface IS the home screen.
+**Queue tabs** — Bugs / Features / Ideas, each with a live count of its **active** items. Bugs sort by severity (blocker → annoying → polish → unset) then newest-first; features and ideas sort newest-first. Empty states are per-tab ("Nothing to fix." / "No features yet." / "No ideas yet.").
 
-**Below the capture block:**
-- The inbox itself, reverse-chronological
-- Each fix as a card showing:
-  - App pill (color-coded, small)
-  - Idea marker (small, lavender) — shown only for ideas; bugs stay unmarked so the inbox reads as "things broken" by default
-  - Fix text (primary, bold-ish)
-  - Status chip (small, right side)
-  - Timestamp (muted, bottom of card)
-- Tap card → inline edit + status change + type change (Bug/Idea is editable here too, for mis-tags)
-- Long-press or swipe → delete
+**Item card** shows: app tag, a type tag (feature/idea; bugs are unmarked so the list reads as "things broken"), a severity chip for bugs, the headline (`displayTitle`), a subline (`where_in_app`, or "Promoted to feature" on a parked idea), a status chip, and a relative timestamp. Tap a card → inline edit.
 
-**Empty state:** "Nothing to fix."
+**Inline edit** lets you change type (a pill row), edit every field of the current type, and set status (a pill row of all six). Changing an item's type leaves the old type's fields in the row untouched rather than dropping data. Delete is available here, with a 6-second **Undo** toast (re-inserts the full row). Idea cards also get **Promote to feature** — opens a pre-filled feature form; on save the source idea is parked and linked via `promoted_to`.
 
----
+### 2. Triage
 
-### 2. Triage View
+Same data, regrouped by app. One collapsible section per app (plus an **Unfiled** bucket for app-less items), ordered by active-count descending. Section header shows a summary ("3 open · 1 in progress"). Status **filter chips** at top default to the active set (open / in_progress / needs_info); toggle any on to include closed items. Cards are the same as home and open the same inline editor.
 
-Same data, regrouped. Toggle via top-right utility link.
+**Purpose:** pre-flight before a Claude Code session — "what's queued for Course?" in one glance.
 
-- One collapsible section per app (including an **All** section for suite-wide fixes), ordered by open-count descending
-- Section header: app name + open count ("Course · 5 open")
-- Each section shows its fixes as cards (same card structure as home — ideas carry their marker here too)
-- Done and Won't fixes hidden by default; show via filter chip at top ("Showing: Open, Doing")
+### 3. History
 
-**Purpose:** Pre-flight check before a Claude Code session. "What's queued up for Course?" answered in one glance.
+All items, most-recent-activity-first (by `updated_at`), capped at 100. The audit trail — including closed items — without the per-app grouping of triage. Cards open the same inline editor; timestamps show last activity.
 
----
+### 4. Export / Handoff
 
-### 3. Export / Handoff
+Generates the prompt you paste into Claude Code.
 
-Modal or dedicated screen, accessed from utility link.
+**Controls:** app selector (pills, single-select, includes **All**), status filter chips (multi-select, default active set), and a format toggle. A live **preview** renders below; **Copy** writes to the clipboard with a toast ("Copied — N items").
 
-**Controls:**
-- App selector (pills, single-select) — includes **All**, which aggregates every app's fixes into one prompt grouped by app
-- Status filter chips (multi-select, default: Open + Doing)
-- Preview panel showing the formatted output below
+**Bulk advance:** an adaptive button — "Mark all as In progress" when open items match, then "Mark all as Fixed" when in-progress ones do — with an Undo toast. It advances the matching items for the selected app by status.
 
-Bugs **and** ideas are always included together (type is not a filter). The prompt format frames them differently so Claude Code knows which to implement vs. weigh as a spec note.
+**Two formats:**
 
-**Two output formats:**
-
-**Copy as Claude Code prompt** — when both types are present they split into labeled groups; a single-type export stays a flat list (unchanged from before):
-```
-Open fixes for [App] (N):
-
-Bugs (M):
-1. [Fix text]
-...
-
-Ideas (K):
-1. [Fix text]
-...
-
-Review each, propose changes to [app]-spec.md, then implement.
-```
-For the **All** export, items are grouped by app (each app heading, with Bug/Idea sub-grouping inside), and the closing line is generic ("…propose changes to the relevant app's spec, then implement.").
-
-**Copy as plain list** — stays deliberately bare; bugs and ideas mixed, no labels (this is the paste-anywhere format):
-```
-- [Fix text]
-- [Fix text]
-...
-```
-
-Single "Copy" button. Toast confirms ("Copied — 5 fixes").
-
-After copy: optional "Mark all as Doing" button (so the next time you open Patch, you can see what's mid-flight).
+- **Claude Code prompt** — numbered, and split into `Bugs (M):` / `Features (K):` / `Ideas (J):` groups only when more than one type is present (single-type stays a flat list). Bug lines lead with a `[Severity]` tag; bug and feature lines append `(my guess: …)` when a guess was captured — so the context you typed reaches the handoff. For a single app it closes with "Review each, propose changes to `{app}-spec.md`, then implement." For **All**, items are grouped under `### App (N)` headings (with an Unfiled bucket) and the closing line is generic.
+- **Plain list** — bare `- item` lines, no severity, no guess, no labels. Deliberately context-free; the paste-anywhere format.
 
 ---
 
 ## Schema
 
-Single Supabase table on the existing shared project.
-
-**`patches`**
+Single Supabase table, `items`, on the shared suite project (`xsmnfcmtbpeaccnyinkr`). See `schema.sql` for the canonical DDL + the `patches` → `items` migration.
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | uuid | primary key, default gen_random_uuid() |
-| `app` | text | enum check: tick / break / tide / still / course / patch / amanda / stock / **all** ('all' = suite-wide, not tied to one app) |
-| `text` | text | the fix itself, not null |
-| `type` | text | enum check: bug / idea, default 'bug' (idea = a design spec / note / idea, not a defect) |
-| `status` | text | enum check: open / doing / done / wont, default 'open' |
-| `created_at` | timestamptz | default now() |
-| `updated_at` | timestamptz | default now(), updated via trigger |
+| `id` | uuid | pk, `gen_random_uuid()` |
+| `type` | text | `bug` / `feature` / `idea` (default `idea`), not null |
+| `app` | text | one of the nine suite apps, or null (ideas) |
+| `title` | text | ideas; backfilled on legacy rows |
+| `where_in_app` | text | bug + feature |
+| `expected`, `actual` | text | bug only |
+| `description` | text | feature + idea |
+| `severity` | text | `blocker` / `annoying` / `polish`, bug only |
+| `status` | text | six-state lifecycle (above), default `open`, not null |
+| `my_guess` | text | optional hunch at the cause (bug + feature) |
+| `device_context` | text | optional (bug) |
+| `image_url` | text | optional screenshot link |
+| `repo` | text | optional repo override — **reserved, not yet wired** |
+| `promoted_to` | uuid | set on a parked idea when promoted to a feature |
+| `created_at`, `updated_at` | timestamptz | `updated_at` via trigger |
+| `fixed_at` | timestamptz | set on fixed/shipped |
 
-No image field. No severity. No screen/area. If a field starts feeling necessary, add it after two weeks of real use, not before.
-
-`type` is **not** a priority/severity proxy — it's a handoff category. A bug means "something's broken, fix it"; an idea means "a design note / spec thought to weigh." Both still get exported and handed to Claude Code together; the only difference is how the export prompt frames them.
-
----
-
-## Microcopy
-
-Terse, suite-consistent.
-
-- Empty inbox: "Nothing to fix."
-- After save: no toast — just the fix appearing in the list is feedback enough
-- Triage section header: "Course · 5 open"
-- Export preview: "Copied — 5 fixes"
-- Confirm delete: "Delete this fix?" / "Delete"
-- Status chips: Open, Doing, Done, Won't (capitalized, no extra words)
-- Type toggle: Bug, Idea (capitalized, no extra words)
-- Idea card marker: "Idea" (lavender; bugs show no marker)
-- Export group headers: "Bugs (3):" / "Ideas (2):"
+The legacy single-text column `text` is retained nullable for back-compat (droppable once the backfill is confirmed). Apps: `course / stock / ink / tide / tick / break / today / crate / patch`.
 
 ---
 
 ## What Patch Doesn't Do
 
-Explicit non-goals — list here so future feature creep gets caught:
+Non-goals — list here so feature creep gets caught:
 
-- **No screenshots / image attachments.** Capture friction kills inbox apps. If a visual bug is hard to describe in words, save the screenshot to camera roll and reference it in the fix text ("see screenshot, May 14 ~9pm").
-- **No spec rewriting in-app.** Patch generates a Claude Code prompt; CC does the spec update. Patch is dumb on purpose.
-- **No GitHub integration.** No commits, no PRs, no branch writes. Patch hands off a prompt; you run CC manually.
-- **No priority / severity field.** App + status is enough signal. "I'll do the Course ones tonight" beats a P1/P2/P3 system you'll stop maintaining. (`type` = bug/idea is *not* a severity scale — it's a handoff category that changes how the export prompt reads, nothing more.)
-- **No assignee / collaborator features.** Single-user app.
-- **No cross-app reads.** Patch doesn't know what's in Tick or Still. It only collects fixes about them.
+- **No screenshots / image upload.** There's an optional `image_url` text field for a link, but no attachment flow. Capture friction kills inbox apps.
+- **No spec rewriting in-app.** Patch generates a prompt; Claude Code does the spec update. Patch is dumb on purpose.
+- **No GitHub integration.** No commits, PRs, or branch writes. You run CC manually with the copied prompt.
+- **No priority field beyond bug severity.** Severity sorts the bug queue; it is not a P1/P2/P3 system across types.
+- **No assignee / collaboration.** Single-user.
+- **No cross-app reads.** Patch knows nothing about Tick/Course/etc.; it only collects fixes about them.
 
 ---
 
 ## Cross-App Integration
 
-**Patch → all apps:** One-way capture. Patch reads no other app's data; it just collects fixes about them and exports Claude-Code-ready prompts.
+**Patch → all apps:** one-way capture. Patch reads no other app's data; it collects fixes and exports Claude-Code-ready prompts.
 
-**Patch ← nothing:** No app writes to Patch. If you notice a fix while using another app, you open Patch and log it. Manual on purpose — the friction of switching apps is the signal that the fix mattered enough to capture.
-
----
-
-## External Integrations
-
-None. Patch is self-contained.
-
-(No Claude API calls. No Notion. No Oura. The handoff is the user copying a prompt and pasting it into Claude Code.)
+**Patch ← nothing:** no app writes to Patch. The friction of switching apps to log a fix is the signal that the fix mattered.
 
 ---
 
-## Stack
+## Stack & Auth
 
-Same as the rest of the suite:
-- Single-file PWA (`index.html`) on GitHub Pages
-- Supabase REST for the `patches` table
-- No build step, no server-side code
-- Own GitHub repo + GitHub Pages URL
-- Installable to home screen
-- System-following dark/light
-- Mobile-first ~440px column, centered on desktop
+- Single-file PWA (`index.html`), no build step, GitHub Pages (repo `Patch-App`).
+- Supabase REST against `items`, using the suite **anon key** with an open `using(true)` RLS policy — no per-user auth (single-user app; matches the rest of the suite).
+- Service worker (`sw.js`): network-first for Supabase (data always fresh), cache-first for static assets. **Bump `CACHE_NAME` on every `index.html` change** so installed clients update.
+- Installable; mobile-first ~440px column, centered on desktop; system-following dark/light.
 
 ---
 
-## Suite Doc Updates
-
-Two additions to `suite-context-Nate-Apps.md` when this ships:
-
-**The Suite table:**
-
-| App | Owns | Color Weather |
-|---|---|---|
-| **Patch** | Fix capture — log fixes across the suite, hand off to Claude Code | Graphite bg + warning-yellow accent. Workshop, clipboard, single bulb. |
-
-**Cross-App Integration section:**
-
-> **Patch → all apps** — One-way capture. Patch reads no other app's data; it just collects fixes and exports Claude Code prompts.
-
----
-
-## Build Order
-
-1. Schema + Supabase table + RLS policy (single-user, your auth)
-2. Capture screen (home) — input, pills, list, status chips, edit/delete
-3. Triage view — grouping, collapse, filter
-4. Export modal — pill selector, status filter, prompt template, copy
-5. HTML mockups committed before any CC implementation work
-6. Polish: empty states, last-used pill memory, mark-all-as-doing after export
-
----
-
-*Last updated: May 2026 — added Bug/Idea type toggle (Bug default), the "All" suite-wide app option, and grouped Bug/Idea export output.*
+*Last updated: May 2026 — rewritten to match the typed-items app (bug/feature/idea, six-state lifecycle, Capture/Triage/History/Export views, promote-to-feature, severity + my_guess in the export prompt). Supersedes the original flat bug-tracker spec.*

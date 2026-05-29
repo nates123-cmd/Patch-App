@@ -1452,6 +1452,7 @@
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   }
 
+  // Bare line — used by the plain-list format (deliberately context-free).
   function exportLine(it) {
     const t = itemType(it);
     if (t === 'bug') {
@@ -1470,18 +1471,34 @@
       : (it.description || '(idea)');
   }
 
+  // Richer line for the Claude Code prompt: bugs lead with a severity tag and
+  // both bugs + features append the user's guess at the cause when present, so
+  // the context typed at capture actually reaches the handoff.
+  function exportLinePrompt(it) {
+    const t = itemType(it);
+    const guess = it.my_guess && it.my_guess.trim() ? ` (my guess: ${it.my_guess.trim()})` : '';
+    if (t === 'bug') {
+      const sev = it.severity ? `[${SEVERITY_LABEL[it.severity]}] ` : '';
+      return `${sev}${exportLine(it)}${guess}`;
+    }
+    if (t === 'feature') {
+      return `${exportLine(it)}${guess}`;
+    }
+    return exportLine(it);
+  }
+
   // Numbered list; splits into type-labeled groups only when more than one type is present.
   function promptGroup(items) {
     const present = TYPES.filter((t) => items.some((it) => itemType(it) === t));
     if (present.length <= 1) {
-      return items.map((it, i) => `${i + 1}. ${exportLine(it)}`).join('\n');
+      return items.map((it, i) => `${i + 1}. ${exportLinePrompt(it)}`).join('\n');
     }
     const labels = { bug: 'Bugs', feature: 'Features', idea: 'Ideas' };
     const blocks = [];
     present.forEach((t) => {
       const group = items.filter((it) => itemType(it) === t);
       const lines = [`${labels[t]} (${group.length}):`];
-      group.forEach((it, i) => lines.push(`${i + 1}. ${exportLine(it)}`));
+      group.forEach((it, i) => lines.push(`${i + 1}. ${exportLinePrompt(it)}`));
       blocks.push(lines.join('\n'));
     });
     return blocks.join('\n\n');
