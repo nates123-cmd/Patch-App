@@ -71,6 +71,16 @@
     max-width: var(--layout-width);
     margin: 0 auto;
     padding: 22px 18px 100px;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Re-enable text selection on form fields + the user's own typed content. */
+  input, textarea, select, [contenteditable],
+  .field-input, .fix-text, .fix-sub {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   button { font-family: inherit; cursor: pointer; }
