@@ -776,6 +776,11 @@
   const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'patch'];
   const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', patch: 'Patch' };
 
+  // Apps offered in the new-item picker. Tick is tracked in its own project,
+  // not filed here, so it's omitted from the capture list (existing Tick items
+  // still group in Triage/Export, which use APPS).
+  const CAPTURE_APPS = ['course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'patch'];
+
   const TYPES = ['bug', 'feature', 'idea'];
   const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', idea: 'Idea' };
   const TYPE_DESC = { bug: 'Something is broken', feature: 'Something to build', idea: 'A thought to weigh' };
@@ -1004,7 +1009,7 @@
 
       if (def.kind === 'apps') {
         const row = el('div', { class: 'pills-row' });
-        APPS.forEach((app) => {
+        CAPTURE_APPS.forEach((app) => {
           row.appendChild(el('button', {
             class: `pill ${app}${values.app === app ? ' selected' : ''}`,
             type: 'button',
