@@ -1,4 +1,4 @@
-const CACHE_NAME = 'patch-v8';
+const CACHE_NAME = 'patch-v9';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -24,10 +24,12 @@ self.addEventListener('fetch', (event) => {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return;
 
-  if (url.hostname.includes('supabase.co')) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
-    return;
-  }
+  // Bypass the SW for Supabase: let the browser fetch it directly. The old
+  // caches.match fallback was never populated (API responses aren't cached),
+  // so on failure it resolved undefined and respondWith threw "FetchEvent ...
+  // returned response is null". Bypassing lets offline failures reject
+  // natively to the app instead of a manufactured null response.
+  if (url.hostname.includes('supabase.co')) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {
