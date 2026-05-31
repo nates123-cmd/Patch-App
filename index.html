@@ -321,6 +321,7 @@
   .app-tag.ink { color: var(--ink); }
   .app-tag.today { color: var(--today); }
   .app-tag.crate { color: var(--crate); }
+  .app-tag.all { color: var(--text-muted); }
 
   .type-tag {
     font-size: 10px;
@@ -774,12 +775,12 @@
 
   // — Constants —
   const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'patch'];
-  const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', patch: 'Patch' };
+  const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', patch: 'Patch', all: 'All apps' };
 
-  // Apps offered in the new-item picker. Tick is tracked in its own project,
-  // not filed here, so it's omitted from the capture list (existing Tick items
-  // still group in Triage/Export, which use APPS).
-  const CAPTURE_APPS = ['course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'patch'];
+  // Apps offered in the new-item picker. 'all' tags a single suite-wide item
+  // that affects every app. Tick is tracked in its own project, not filed here,
+  // so it's omitted (existing Tick items still group in Triage/Export via APPS).
+  const CAPTURE_APPS = ['all', 'course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'patch'];
 
   const TYPES = ['bug', 'feature', 'idea'];
   const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', idea: 'Idea' };
@@ -1384,6 +1385,7 @@
 
     const groups = {};
     APPS.forEach((a) => { groups[a] = newGroup(); });
+    groups.all = newGroup();
     groups.none = newGroup();
     state.items.forEach((it) => {
       const key = it.app && groups[it.app] ? it.app : 'none';
@@ -1393,6 +1395,7 @@
     });
 
     const order = APPS.slice();
+    if (groups.all.total) order.push('all');
     if (groups.none.total) order.push('none');
     const sorted = order.sort((a, b) => {
       const ao = activeCount(groups[a]);
@@ -1585,7 +1588,7 @@
 
     if (state.exportApp === 'all') {
       const blocks = [];
-      [...APPS, 'none'].forEach((app) => {
+      [...APPS, 'all', 'none'].forEach((app) => {
         const items = matches.filter((p) => (app === 'none' ? !p.app : p.app === app));
         if (items.length) {
           const heading = app === 'none' ? 'Unfiled' : APP_LABEL[app];
