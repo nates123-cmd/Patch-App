@@ -1,0 +1,12 @@
+{
+  "name": "patch-qa-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated QA harness for the Patch app (Playwright, real window globals).",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
