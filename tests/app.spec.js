@@ -80,18 +80,28 @@ test.describe('capture save payload', () => {
   });
 });
 
-// ---------- DOCUMENTED REAL APP BUG ----------
-// The capture/edit forms offer an "All" app pill (CAPTURE_APPS[0] === 'all'),
-// and saveCapture POSTs `app: 'all'` verbatim. The DB CHECK constraint
-// (schema.sql:21) only allows the 9 named apps — 'all' is NOT permitted — so the
-// insert is rejected and the user sees a generic "Save failed". This test
-// DOCUMENTS the bug (it does not patch the app): it proves the app sends app:'all'
-// and that, when the backend rejects it (as the real schema does), capture fails.
-test.describe('KNOWN APP BUG: "All" app pill produces a DB-invalid payload', () => {
-  test('saving a bug tagged "All" POSTs app:"all" and surfaces "Save failed" on reject', async ({ page }) => {
+// ---------- REGRESSION: "All" is never a capture target ----------
+// "All" is a filter/Export-only selector. The items.app CHECK constraint
+// (schema.sql:21) only allows the 9 named apps — 'all' is NOT permitted — so a
+// capture tagged "All" was rejected and silently lost (generic "Save failed").
+// Fix: 'all' is dropped from CAPTURE_APPS (so the pill never renders in the
+// capture/edit picker) and saveCapture normalizes any stray app==='all' to null.
+// These tests lock that in: the picker has no "All" pill, and a real-app capture
+// still posts its real app value. (Export's "All" pill is covered separately.)
+test.describe('regression: capture never sends app "all" to the DB', () => {
+  test('the capture app picker offers no "All" pill', async ({ page }) => {
+    await bootApp(page, []);
+    await page.locator('.type-card', { hasText: 'Bug' }).click();
+    // Real apps are present...
+    await expect(page.locator('#capture-block .pill[data-app="course"]')).toHaveCount(1);
+    // ...but "All" is not a capture target.
+    await expect(page.locator('#capture-block .pill[data-app="all"]')).toHaveCount(0);
+  });
+
+  test('saving a real-app bug POSTs its real app value (and never "all")', async ({ page }) => {
     const sink = [];
     await seedSession(page);
-    // Stub that mimics the real CHECK constraint: reject app values not in the 9 apps.
+    // Stub mimics the real CHECK constraint: reject app values not in the 9 apps.
     const allowed = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'patch'];
     await page.route('https://xsmnfcmtbpeaccnyinkr.supabase.co/**', async (route) => {
       const req = route.request();
@@ -115,9 +125,9 @@ test.describe('KNOWN APP BUG: "All" app pill produces a DB-invalid payload', () 
     await page.goto('/index.html');
     await page.waitForFunction(() => document.querySelector('#view-capture')?.classList.contains('active'));
 
-    // Bug form, pick the "All" app pill, fill required fields.
+    // Bug form, pick a real app (Course), fill required fields.
     await page.locator('.type-card', { hasText: 'Bug' }).click();
-    await page.locator('#capture-block .pill[data-app="all"]').click();
+    await page.locator('#capture-block .pill[data-app="course"]').click();
     // where_in_app, expected, actual are the three text/textarea inputs (in order).
     const inputs = page.locator('#capture-block .field-input');
     await inputs.nth(0).fill('Somewhere');
@@ -127,13 +137,31 @@ test.describe('KNOWN APP BUG: "All" app pill produces a DB-invalid payload', () 
     await page.locator('#capture-block .sev-pill.blocker').click();
     await page.locator('#capture-save').click();
 
-    // The app emitted app:'all' — the DB-invalid value the bug is about.
+    // The real app value is posted and accepted — no "all" ever reaches the network.
     await expect.poll(() => sink.filter((r) => r.method === 'POST').length).toBeGreaterThan(0);
     const post = sink.find((r) => r.method === 'POST');
-    expect(post.body.app).toBe('all'); // <-- BUG: not an allowed DB value
+    expect(post.body.app).toBe('course');
+    expect(sink.some((r) => r.body && r.body.app === 'all')).toBe(false);
+    // Save succeeded (no failure toast).
+    await expect(page.locator('#toast')).not.toContainText('Save failed');
+  });
 
-    // And the rejected save surfaces the generic failure toast.
-    await expect(page.locator('#toast')).toContainText('Save failed');
+  test('saveCapture maps a stray app==="all" to null before POSTing', async ({ page }) => {
+    const sink = [];
+    await bootApp(page, [], sink);
+    // Drive the real save path with app forced to 'all' (simulating any stray value).
+    await page.evaluate(() => {
+      state.capture = {
+        type: 'bug',
+        values: { app: 'all', where_in_app: 'Somewhere', expected: 'works', actual: 'breaks', severity: 'blocker' },
+      };
+    });
+    await page.evaluate(() => saveCapture());
+
+    await expect.poll(() => sink.filter((r) => r.method === 'POST' && r.url.includes('/items')).length).toBeGreaterThan(0);
+    const post = sink.find((r) => r.method === 'POST' && r.url.includes('/items'));
+    expect(post.body.type).toBe('bug');
+    expect(post.body.app).toBeNull(); // 'all' normalized away, never sent to the CHECK constraint
   });
 });
 

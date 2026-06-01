@@ -787,10 +787,12 @@
   const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'patch'];
   const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', patch: 'Patch', all: 'All apps' };
 
-  // Apps offered in the new-item picker. 'all' tags a single suite-wide item
-  // that affects every app. Tick is tracked in its own project, not filed here,
-  // so it's omitted (existing Tick items still group in Triage/Export via APPS).
-  const CAPTURE_APPS = ['all', 'course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'patch'];
+  // Apps offered in the new-item picker. 'all' is intentionally excluded: it is a
+  // filter/Export-only selector, and the items.app CHECK constraint rejects 'all',
+  // so capturing against it would silently drop the item. Tick is tracked in its own
+  // project, not filed here, so it's omitted (existing Tick items still group in
+  // Triage/Export via APPS).
+  const CAPTURE_APPS = ['course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'patch'];
 
   const TYPES = ['bug', 'feature', 'idea'];
   const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', idea: 'Idea' };
@@ -1164,7 +1166,10 @@
     const t = state.capture.type;
     const v = state.capture.values;
     if (!t || !formValid(t, v)) return;
-    const payload = { type: t, app: v.app || null };
+    // 'all' is a filter/Export-only selector and is rejected by the items.app CHECK
+    // constraint — never send it to the DB; treat it as no app (suite-wide / unfiled).
+    const captureApp = (v.app && v.app !== 'all') ? v.app : null;
+    const payload = { type: t, app: captureApp };
     FORM_FIELDS[t].forEach((k) => {
       if (k === 'app') return;
       const val = v[k];
@@ -1174,7 +1179,7 @@
     if (btn) btn.disabled = true;
     try {
       const inserted = await createItem(payload);
-      if (v.app) { state.lastApp = v.app; localStorage.setItem('patch_last_app', v.app); }
+      if (captureApp) { state.lastApp = captureApp; localStorage.setItem('patch_last_app', captureApp); }
       let promoted = false;
       if (state.promoteFromId && t === 'feature' && inserted) {
         try {
