@@ -727,13 +727,32 @@
   function _setAuthSession(x) { if (x && x.access_token) localStorage.setItem(SB_AUTH_KEY, JSON.stringify(x)); else localStorage.removeItem(SB_AUTH_KEY); }
   function hasSession() { const x = _authSession(); return !!(x && x.access_token); }
   function _sessionExpired(x) { const exp = x && x.expires_at ? x.expires_at * 1000 : 0; return Date.now() > exp - 60000; }
-  async function _refreshSession() {
-    const x = _authSession(); if (!x || !x.refresh_token) return null;
-    try {
-      const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: x.refresh_token }) });
-      if (!r.ok) { _setAuthSession(null); return null; }
-      const ns = await r.json(); _setAuthSession(ns); return ns;
-    } catch (e) { return null; }
+  // Single-flight refresh. Supabase rotates the refresh token on every use, so
+  // concurrent callers (parallel boot reads, sibling suite tabs sharing this
+  // session key) must share ONE round-trip — otherwise the losers present a
+  // rotated token, get "Refresh Token Not Found", and wipe the session → writes
+  // fall back to the anon key and die on RLS. Re-read storage first (a sibling
+  // may already have a fresh token) and only clear if the dead token is still ours.
+  let _refreshInFlight = null;
+  function _refreshSession() {
+    if (_refreshInFlight) return _refreshInFlight;
+    _refreshInFlight = (async () => {
+      let x = _authSession();
+      if (x && x.access_token && !_sessionExpired(x)) return x;
+      if (!x || !x.refresh_token) return null;
+      try {
+        const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: x.refresh_token }) });
+        if (!r.ok) {
+          const cur = _authSession();
+          if (cur && cur.access_token && !_sessionExpired(cur)) return cur;
+          if (cur && cur.refresh_token === x.refresh_token) _setAuthSession(null);
+          return null;
+        }
+        const ns = await r.json(); _setAuthSession(ns); return ns;
+      } catch (e) { return null; }
+    })();
+    _refreshInFlight.finally(() => { _refreshInFlight = null; });
+    return _refreshInFlight;
   }
   async function authToken() { let x = _authSession(); if (!x || !x.access_token) return null; if (_sessionExpired(x)) x = await _refreshSession(); return (x && x.access_token) || null; }
   async function sbBearer() { return (await authToken()) || SB_KEY; }
