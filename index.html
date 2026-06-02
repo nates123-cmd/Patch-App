@@ -32,6 +32,7 @@
     --ink: #8b9ae0;
     --today: #eaa18a;
     --crate: #df8a8a;
+    --cue: #c98ad4;
 
     --layout-width: 440px;
   }
@@ -215,6 +216,7 @@
   .pill.ink { color: var(--ink); }
   .pill.today { color: var(--today); }
   .pill.crate { color: var(--crate); }
+  .pill.cue { color: var(--cue); }
   .pill.all { color: var(--text-muted); }
   .pill.selected.tick { background: var(--tick); color: #1a1a1c; border-color: var(--tick); }
   .pill.selected.break { background: var(--break); color: #1a1a1c; border-color: var(--break); }
@@ -225,6 +227,7 @@
   .pill.selected.ink { background: var(--ink); color: #1a1a1c; border-color: var(--ink); }
   .pill.selected.today { background: var(--today); color: #1a1a1c; border-color: var(--today); }
   .pill.selected.crate { background: var(--crate); color: #1a1a1c; border-color: var(--crate); }
+  .pill.selected.cue { background: var(--cue); color: #1a1a1c; border-color: var(--cue); }
   .pill.selected.all { background: var(--text-muted); color: var(--bg); border-color: var(--text-muted); }
 
   /* Severity pills */
@@ -331,6 +334,7 @@
   .app-tag.ink { color: var(--ink); }
   .app-tag.today { color: var(--today); }
   .app-tag.crate { color: var(--crate); }
+  .app-tag.cue { color: var(--cue); }
   .app-tag.all { color: var(--text-muted); }
 
   .type-tag {
@@ -497,6 +501,7 @@
   .triage-name.ink { color: var(--ink); }
   .triage-name.today { color: var(--today); }
   .triage-name.crate { color: var(--crate); }
+  .triage-name.cue { color: var(--cue); }
   .triage-name.none { color: var(--text-muted); }
   .triage-count { font-size: 12px; color: var(--text-faint); margin-left: 8px; font-weight: 400; }
   .triage-chev { color: var(--text-fainter); font-size: 12px; transition: transform 0.15s; }
@@ -784,15 +789,15 @@
   }
 
   // — Constants —
-  const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'patch'];
-  const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', patch: 'Patch', all: 'All apps' };
+  const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'cue', 'patch'];
+  const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', cue: 'Cue', patch: 'Patch', all: 'All apps' };
 
   // Apps offered in the new-item picker. 'all' is intentionally excluded: it is a
   // filter/Export-only selector, and the items.app CHECK constraint rejects 'all',
   // so capturing against it would silently drop the item. Tick is tracked in its own
   // project, not filed here, so it's omitted (existing Tick items still group in
   // Triage/Export via APPS).
-  const CAPTURE_APPS = ['course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'patch'];
+  const CAPTURE_APPS = ['course', 'stock', 'ink', 'tide', 'break', 'today', 'crate', 'cue', 'patch'];
 
   const TYPES = ['bug', 'feature', 'idea'];
   const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', idea: 'Idea' };
