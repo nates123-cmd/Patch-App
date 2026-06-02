@@ -136,6 +136,70 @@
   .type-card.idea .tc-name { color: var(--tick); }
   .type-card .tc-desc { font-size: 12px; color: var(--text-faint); }
 
+  /* Freeform capture */
+  .freeform-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: left;
+    width: 100%;
+    background: var(--bg-nested);
+    border: 0.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--text);
+    transition: background 0.12s, transform 0.05s;
+  }
+  .freeform-entry:hover { background: var(--border-strong); }
+  .freeform-entry:active { transform: scale(0.99); }
+  .ff-entry-name { font-size: 16px; font-weight: 600; color: var(--accent); }
+  .ff-entry-desc { font-size: 12px; color: var(--text-faint); }
+  .picker-or {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-fainter);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 12px 0;
+  }
+  textarea.ff-text { min-height: 110px; line-height: 1.4; }
+  .ff-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .mic-btn {
+    flex: 0 0 auto;
+    background: var(--bg-nested);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 14px;
+  }
+  .mic-btn:hover { border-color: var(--text-faint); }
+  .mic-btn.on { background: var(--danger); border-color: var(--danger); color: #1a1a1c; }
+  .ff-format { flex: 1 1 auto; }
+  .draft-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(245, 213, 71, 0.1);
+    border: 0.5px solid rgba(245, 213, 71, 0.35);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 14px;
+  }
+  .draft-back {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px;
+  }
+
   /* Form */
   .form-head {
     display: flex;
@@ -807,6 +871,39 @@
     return text ? JSON.parse(text) : null;
   }
 
+  // — Claude (suite shared proxy) —
+  // Slug `claude` — a JWT-gated server-side relay to api.anthropic.com (the
+  // Anthropic billing key lives in the function's env, never in this client).
+  // verify_jwt=true, so any valid suite token reaches it; we send the OTP session
+  // bearer. There is NO client API key to manage or store.
+  // Contract: POST { messages, system?, model?, max_tokens? } → { text, content }.
+  // model allowlist incl. 'claude-haiku-4-5' / 'claude-sonnet-4-6'; max_tokens cap 4096.
+  async function claudeProxy(system, input, opts = {}) {
+    const { model = 'claude-sonnet-4-6', max_tokens = 1200 } = opts;
+    const res = await fetch(`${SB_URL}/functions/v1/claude`, {
+      method: 'POST',
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${await sbBearer()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model, max_tokens, system, messages: [{ role: 'user', content: input }] }),
+    });
+    if (!res.ok) throw new Error(`Claude proxy ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    return (data && data.text) || '';
+  }
+
+  // Strip ```json fences and return the first JSON object found, else null.
+  function extractJSON(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const s = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
+    try { return JSON.parse(s); } catch (e) {}
+    const m = s.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try { return JSON.parse(m[0]); } catch (e) { return null; }
+  }
+
   // — Constants —
   const APPS = ['course', 'stock', 'ink', 'tide', 'tick', 'break', 'today', 'crate', 'cue', 'patch'];
   const APP_LABEL = { course: 'Course', stock: 'Stock', ink: 'Ink', tide: 'Tide', tick: 'Tick', break: 'Break', today: 'Today', crate: 'Crate', cue: 'Cue', patch: 'Patch', all: 'All apps' };
@@ -866,6 +963,7 @@
     items: [],
     lastApp: localStorage.getItem('patch_last_app') || 'course',
     capture: { type: null, values: {} },
+    freeform: { active: false, text: '', parsing: false },
     promoteFromId: null,
     queueTab: 'bug',
     editingId: null,
@@ -1099,12 +1197,25 @@
   function renderCapture() {
     const block = $('#capture-block');
     block.innerHTML = '';
-    if (!state.capture.type) renderTypePicker(block);
+    if (state.freeform.active) renderFreeform(block);
+    else if (!state.capture.type) renderTypePicker(block);
     else renderCaptureForm(block);
     renderCaptureList();
   }
 
   function renderTypePicker(block) {
+    // Freeform entry — describe it in one box (type or dictate) and let Claude
+    // sort it into a typed draft. Sits above the manual type cards.
+    block.appendChild(el('button', {
+      class: 'freeform-entry',
+      type: 'button',
+      onclick: startFreeform,
+    },
+      el('span', { class: 'ff-entry-name' }, '✨ Describe it'),
+      el('span', { class: 'ff-entry-desc' }, 'Type or talk — Claude drafts the rest'),
+    ));
+    block.appendChild(el('div', { class: 'picker-or' }, 'or pick a type'));
+
     const wrap = el('div', { class: 'type-picker' });
     TYPES.forEach((t) => {
       wrap.appendChild(el('button', {
@@ -1127,6 +1238,139 @@
       const f = $('#capture-block').querySelector('.field-input');
       if (f) f.focus();
     }, 40);
+  }
+
+  // — Freeform capture (describe it → Claude drafts a typed item → preview) —
+  function startFreeform() {
+    state.promoteFromId = null;
+    state.capture = { type: null, values: {} };
+    state.freeform = { active: true, text: '', parsing: false };
+    renderCapture();
+    setTimeout(() => { const t = $('#ff-text'); if (t) t.focus(); }, 40);
+  }
+  function cancelFreeform() {
+    stopDictation();
+    state.freeform = { active: false, text: '', parsing: false };
+    renderCapture();
+  }
+
+  // Web Speech API dictation. Optional — absent on some browsers, in which case
+  // the mic button is hidden and the textarea still takes the OS keyboard's own
+  // dictation (iOS/macOS mic key) for free.
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let _recog = null, _recogBase = '';
+  function stopDictation() { if (_recog) { try { _recog.stop(); } catch (e) {} _recog = null; } }
+  function toggleDictation(btn, textEl) {
+    if (_recog) { stopDictation(); btn.classList.remove('on'); btn.textContent = '🎙 Dictate'; return; }
+    _recog = new SpeechRec();
+    _recog.continuous = true;
+    _recog.interimResults = true;
+    _recog.lang = navigator.language || 'en-US';
+    _recogBase = textEl.value ? textEl.value.replace(/\s*$/, '') + ' ' : '';
+    _recog.onresult = (e) => {
+      let txt = '';
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      textEl.value = _recogBase + txt;
+      state.freeform.text = textEl.value;
+    };
+    _recog.onerror = (e) => { showToast(e.error === 'not-allowed' ? 'Mic blocked — allow access' : 'Dictation error'); stopDictation(); btn.classList.remove('on'); btn.textContent = '🎙 Dictate'; };
+    _recog.onend = () => { if (_recog) { _recog = null; btn.classList.remove('on'); btn.textContent = '🎙 Dictate'; } };
+    try { _recog.start(); btn.classList.add('on'); btn.textContent = '⏹ Stop'; }
+    catch (e) { _recog = null; showToast('Could not start dictation'); }
+  }
+
+  function renderFreeform(block) {
+    block.appendChild(el('div', { class: 'form-head' },
+      el('span', { class: 'form-title' }, 'Describe it'),
+      el('button', { class: 'change-type', type: 'button', onclick: cancelFreeform }, 'Cancel'),
+    ));
+    block.appendChild(el('div', { class: 'form-note' },
+      'Dump the bug, feature, or idea in your own words. Claude picks the type, app, and fields — you review before saving.'));
+
+    const ta = el('textarea', {
+      class: 'field-input ff-text',
+      id: 'ff-text',
+      rows: '5',
+      placeholder: 'e.g. "In Course the triage cards don\'t show the project pillar color on mobile — should match the desktop pill"',
+      oninput: (e) => { state.freeform.text = e.target.value; updateFreeformBtn(); },
+    });
+    ta.value = state.freeform.text || '';
+    block.appendChild(ta);
+
+    const actions = el('div', { class: 'ff-actions' });
+    if (SpeechRec) {
+      actions.appendChild(el('button', {
+        class: 'mic-btn', type: 'button',
+        onclick: (e) => toggleDictation(e.currentTarget, ta),
+      }, '🎙 Dictate'));
+    }
+    actions.appendChild(el('button', {
+      class: 'save-btn ff-format', id: 'ff-format', type: 'button', onclick: runFreeformFormat,
+    }, 'Format →'));
+    block.appendChild(actions);
+    updateFreeformBtn();
+  }
+  function updateFreeformBtn() {
+    const btn = $('#ff-format');
+    if (btn && !state.freeform.parsing) btn.disabled = (state.freeform.text || '').trim().length < 4;
+  }
+
+  // Claude system prompt: classify + structure the freeform dump into one item.
+  function freeformSystemPrompt() {
+    return [
+      'You convert a freeform description of a software issue into ONE structured item for a bug/feature/idea tracker.',
+      'Return ONLY a JSON object (no prose, no code fences) with these keys:',
+      '  "type": one of "bug" | "feature" | "idea".',
+      '  "app": one of ' + CAPTURE_APPS.map((a) => `"${a}"`).join(', ') + ', or null if unclear / not app-specific.',
+      '  "title": short title (REQUIRED for idea; omit otherwise).',
+      '  "where_in_app": the screen/section (bug + feature).',
+      '  "expected": what should happen (bug only).',
+      '  "actual": what actually happens (bug only).',
+      '  "severity": one of "blocker" | "annoying" | "polish" (bug only).',
+      '  "description": a clear description (feature + idea).',
+      '  "my_guess": an optional hunch at the cause, only if the user offered one (bug + feature).',
+      '  "device_context": optional device/OS/when, only if mentioned (bug).',
+      'Type rules: "bug" = something is broken; "feature" = something to build in a specific app; "idea" = a looser thought, often not tied to an app.',
+      'Only include keys relevant to the chosen type. Omit keys you have no basis for — do NOT invent details. Preserve the user\'s wording where possible; tighten, don\'t embellish.',
+    ].join('\n');
+  }
+
+  async function runFreeformFormat() {
+    const text = (state.freeform.text || '').trim();
+    if (text.length < 4 || state.freeform.parsing) return;
+    stopDictation();
+    state.freeform.parsing = true;
+    const btn = $('#ff-format');
+    if (btn) { btn.disabled = true; btn.textContent = 'Drafting…'; }
+    try {
+      const raw = await claudeProxy(freeformSystemPrompt(), text, { max_tokens: 1200 });
+      const parsed = extractJSON(raw);
+      if (!parsed || !TYPES.includes(parsed.type)) throw new Error('bad-shape');
+      openDraftFromFreeform(parsed, text);
+    } catch (err) {
+      state.freeform.parsing = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Format →'; }
+      console.error('Freeform format failed:', err);
+      showToast('Couldn\'t format — try again or pick a type');
+    }
+  }
+
+  // Map Claude's JSON onto a capture draft and hand off to the normal capture
+  // form, which IS the editable preview: same fields, validation, and save path.
+  function openDraftFromFreeform(parsed, sourceText) {
+    const type = parsed.type;
+    const app = CAPTURE_APPS.includes(parsed.app) ? parsed.app : (type === 'idea' ? null : state.lastApp);
+    const values = { app };
+    FORM_FIELDS[type].forEach((k) => {
+      if (k === 'app') return;
+      let v = parsed[k];
+      if (k === 'severity') { values[k] = SEVERITIES.includes(v) ? v : null; return; }
+      values[k] = (v !== null && v !== undefined) ? String(v).trim() : '';
+    });
+    state.freeform = { active: false, text: sourceText, parsing: false };
+    state.capture = { type, values, fromFreeform: true };
+    renderCapture();
+    setTimeout(() => { const f = $('#capture-block').querySelector('.field-input'); if (f) f.focus(); }, 40);
   }
 
   // Open the feature form prefilled from an idea; the idea is parked on save.
@@ -1163,6 +1407,21 @@
 
     if (state.promoteFromId) {
       block.appendChild(el('div', { class: 'form-note' }, 'Promoted from an idea — add where it lives.'));
+    }
+
+    if (state.capture.fromFreeform) {
+      block.appendChild(el('div', { class: 'draft-banner' },
+        el('span', {}, '✨ Drafted from your description — review and edit, then save.'),
+        el('button', {
+          class: 'draft-back', type: 'button',
+          onclick: () => {
+            state.freeform = { active: true, text: state.freeform.text || '', parsing: false };
+            state.capture = { type: null, values: {} };
+            renderCapture();
+            setTimeout(() => { const t = $('#ff-text'); if (t) t.focus(); }, 40);
+          },
+        }, 'Back to text'),
+      ));
     }
 
     const fieldsWrap = el('div', { class: 'form-fields' });

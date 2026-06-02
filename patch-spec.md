@@ -63,6 +63,8 @@ Four views, switched via the top-right utility links (no modals): **Capture** (h
 
 The whole point of the app.
 
+**Describe it (freeform)** — above the type picker, one button opens a single textarea: dump the thing in plain words, by typing or by **voice** (a mic button uses the Web Speech API where available; the textarea also accepts the OS keyboard's own dictation everywhere). **Format →** sends the text through the suite's shared `claude` edge proxy (JWT-gated, Anthropic key server-side — no client API key) which classifies the **type**, picks the **app**, and fills the type's fields, returning JSON. The result lands in the normal capture form as an **editable preview** (banner: "Drafted from your description — review and edit, then save"), with **Back to text** to re-edit the source. Save is the same path as a manual capture; required fields Claude couldn't infer keep Save disabled until filled. Friction-light path for capturing on the go.
+
 **Type picker** — three large cards: Bug / Feature / Idea, each with a one-line description. Tap one to open its form. ("Change type" returns to the picker.)
 
 **Per-type form** — only the fields for that type, required fields dotted, text input autofocused. `app` is a row of color-coded pills; the **last-used app is pre-selected** (persisted in `localStorage` as `patch_last_app`); ideas start app-less. Severity is a three-pill row (Blocker / Annoying / Polish). Save is enter-to-save via **Cmd/Ctrl+Enter**, or the button. No toast on save — the item appearing in the queue is the feedback.
