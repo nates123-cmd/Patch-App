@@ -866,6 +866,10 @@
     };
     if (opts.method && opts.method !== 'GET') headers['Prefer'] = 'return=representation';
     const res = await fetch(url, { ...opts, headers });
+    // 401 = the bearer we sent was rejected (expired/revoked user token, or the
+    // anon-key fallback hitting RLS). The session is unusable; clear it and force
+    // re-auth so writes don't silently fail forever behind a generic toast.
+    if (res.status === 401) { _setAuthSession(null); showOtpGate(); throw new Error('Session expired — sign in again'); }
     if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
     const text = await res.text();
     return text ? JSON.parse(text) : null;
@@ -1958,11 +1962,18 @@
     await loadItems();
     go('capture');
   }
-  (function init() {
+  (async function init() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
-    if (hasSession()) startApp(); else showOtpGate();
+    // Don't trust a bare access_token string at boot — it may be expired with a
+    // dead refresh token (e.g. a sibling-app logout revoked the family). authToken()
+    // refreshes if needed and returns null when the session is unrecoverable, so we
+    // gate on a real, usable token rather than stranding the user in a logged-in-
+    // looking UI where every read/write 401s.
+    if (!hasSession()) { showOtpGate(); return; }
+    const tok = await authToken();
+    if (tok) startApp(); else { _setAuthSession(null); showOtpGate(); }
   })();
 </script>
 </body>
