@@ -1276,6 +1276,7 @@
       for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
       textEl.value = _recogBase + txt;
       state.freeform.text = textEl.value;
+      updateFreeformBtn();
     };
     _recog.onerror = (e) => { showToast(e.error === 'not-allowed' ? 'Mic blocked — allow access' : 'Dictation error'); stopDictation(); btn.classList.remove('on'); btn.textContent = '🎙 Dictate'; };
     _recog.onend = () => { if (_recog) { _recog = null; btn.classList.remove('on'); btn.textContent = '🎙 Dictate'; } };
