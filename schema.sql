@@ -18,7 +18,7 @@ create table items (
   type text not null default 'idea'
     check (type in ('bug','feature','idea')),
   app text                -- required for bug + feature; optional for idea (enforced in app)
-    check (app is null or app in ('course','stock','ink','tide','tick','break','today','crate','cue','patch','resin')),
+    check (app is null or app in ('course','stock','ink','tide','tick','break','today','crate','cue','patch','resin','courseplus')),
   title text,             -- required for ideas; optional/derived for bug + feature
   where_in_app text,      -- required for bug + feature
   expected text,          -- bug only
@@ -92,7 +92,7 @@ alter table patches alter column app drop not null;
 alter table patches drop constraint if exists patches_app_check;
 update patches set app = 'ink' where app = 'still';
 alter table patches add constraint patches_app_check
-  check (app is null or app in ('course','stock','ink','tide','tick','break','today','crate','cue','patch','resin'));
+  check (app is null or app in ('course','stock','ink','tide','tick','break','today','crate','cue','patch','resin','courseplus'));
 
 -- 4. Remap statuses to the new lifecycle, then swap the constraint + default.
 alter table patches drop constraint if exists patches_status_check;

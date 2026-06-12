@@ -1,4 +1,4 @@
-const CACHE_NAME = 'patch-v15';
+const CACHE_NAME = 'patch-v16';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
