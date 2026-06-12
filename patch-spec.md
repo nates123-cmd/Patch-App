@@ -12,7 +12,7 @@
 
 Graphite background + warning-yellow accent (construction-sign yellow, not pastel). Sits tonally adjacent to Tick — utilitarian, night-shift, things-that-need-attention. System-following dark/light; dark is the home state, light is incidental.
 
-Each suite app has an accent used for its pills/tags: course, stock, ink, tide, tick, break, today, crate, cue, patch. The three item types also carry a tint — **bug** = accent yellow, **feature** = tide blue, **idea** = tick lavender.
+Each suite app has an accent used for its pills/tags: course, stock, ink, tide, tick, break, today, crate, cue, patch, resin (resin = an external app, not part of the suite — tracked here for bug capture only). The three item types also carry a tint — **bug** = accent yellow, **feature** = tide blue, **idea** = tick lavender.
 
 ---
 
@@ -123,7 +123,7 @@ Single Supabase table, `items`, on the shared suite project (`xsmnfcmtbpeaccnyin
 | `created_at`, `updated_at` | timestamptz | `updated_at` via trigger |
 | `fixed_at` | timestamptz | set on fixed/shipped |
 
-The legacy single-text column `text` is retained nullable for back-compat (droppable once the backfill is confirmed). Apps: `course / stock / ink / tide / tick / break / today / crate / cue / patch`.
+The legacy single-text column `text` is retained nullable for back-compat (droppable once the backfill is confirmed). Apps: `course / stock / ink / tide / tick / break / today / crate / cue / patch / resin`.
 
 ---
 
