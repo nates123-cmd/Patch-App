@@ -38,6 +38,10 @@ create table items (
   fixed_at timestamptz    -- set when status becomes fixed/shipped
 );
 
+-- resolution: one-line outcome written by the Beelink patch-fixer daemon
+-- (see server/) when it auto-fixes + ships (or bails to needs_info) an item.
+alter table items add column if not exists resolution text;
+
 create index items_app_idx on items(app);
 create index items_type_idx on items(type);
 create index items_status_idx on items(status);

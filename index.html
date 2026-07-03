@@ -446,6 +446,9 @@
   .status-chip.shipped { background: rgba(95, 191, 174, 0.15); color: var(--stock); }
   .status-chip.parked { background: rgba(95, 94, 90, 0.25); color: var(--text-faint); }
   .status-chip.needs_info { background: rgba(163, 156, 240, 0.15); color: var(--tick); }
+  .fix-auto { font-size: 12px; color: var(--tide); margin-top: 6px; opacity: 0.85; }
+  .fix-auto-res { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
+  .fix-auto-res a { color: var(--stock); text-decoration: underline; }
 
   .fix-text {
     font-size: 14px;
@@ -1054,6 +1057,20 @@
     return '';
   }
 
+  // Auto-fix outcome written by the Beelink patch-fixer daemon. Linkifies a trailing commit URL.
+  function autoResolution(text) {
+    const box = el('div', { class: 'fix-auto-res' });
+    const m = /(https?:\/\/\S+)/.exec(text);
+    if (m) {
+      box.appendChild(document.createTextNode(text.slice(0, m.index)));
+      box.appendChild(el('a', { href: m[0], target: '_blank', rel: 'noopener',
+        onclick: (e) => e.stopPropagation() }, 'commit'));
+    } else {
+      box.textContent = text;
+    }
+    return box;
+  }
+
   // — Navigation —
   function go(view) {
     state.view = view;
@@ -1103,7 +1120,7 @@
     const body = {};
     ['id', 'type', 'app', 'title', 'where_in_app', 'expected', 'actual', 'description',
      'severity', 'status', 'my_guess', 'device_context', 'image_url', 'repo',
-     'promoted_to', 'created_at', 'fixed_at'].forEach((k) => {
+     'resolution', 'promoted_to', 'created_at', 'fixed_at'].forEach((k) => {
       if (row[k] !== null && row[k] !== undefined) body[k] = row[k];
     });
     const restored = await sbFetch('/items', { method: 'POST', body: JSON.stringify(body) });
@@ -1564,6 +1581,8 @@
     card.appendChild(el('div', { class: `fix-text${it.status === 'parked' ? ' parked' : ''}` }, displayTitle(it)));
     const sub = cardSubline(it);
     if (sub) card.appendChild(el('div', { class: 'fix-sub' }, sub));
+    if (it.status === 'in_progress') card.appendChild(el('div', { class: 'fix-auto' }, 'Auto-fixing…'));
+    if (it.resolution) card.appendChild(autoResolution(it.resolution));
     card.appendChild(el('div', { class: 'fix-ts' }, formatTimestamp(it[tsField] || it.created_at)));
 
     card.addEventListener('click', () => { state.editingId = it.id; rerenderCurrentView(); });
