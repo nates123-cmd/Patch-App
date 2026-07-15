@@ -5,14 +5,22 @@
  *
  * Loop: poll `items` for new open bug/feature rows -> claim (status=in_progress)
  * -> resolve the target app's GitHub repo, ensure a clean checkout under CODE_DIR
- * -> run headless `claude -p <prompt> --permission-mode bypassPermissions` in the
- * repo to FIX the issue (edits only, no commit) -> daemon verifies the build ->
- * bumps sw.js cache, commits, pushes to the default branch (= deploy) -> writes
- * the outcome back onto the item (status=shipped + resolution, or needs_info).
+ * -> run headless `claude -p <prompt> --permission-mode bypassPermissions` to
+ * TRIAGE then (only if simple) FIX the issue -> if it fixed & builds, bump sw.js,
+ * commit, push the default branch (= deploy) -> writeback status=shipped.
  *
- * Autonomy: Nate chose "always auto-ship". The ONLY gate is: a change that does
- * not build is never pushed (a broken build to GitHub Pages breaks the live app).
- * Those flip to needs_info with the build error instead.
+ * Triage gate (the autonomy dial): the same Claude run first judges the item
+ * SIMPLE vs COMPLEX. SIMPLE = clear, localized, low-risk, no product/design
+ * decisions -> it makes the fix and the daemon auto-ships it. COMPLEX (ambiguous
+ * scope, needs a decision, risky, or Claude isn't confident) -> it makes NO edits
+ * and writes a brief; the daemon opens a Port session (a phone-driveable
+ * port_sessions row) aimed at the repo, seeds it with the patch + brief, pings
+ * the phone, and marks the item needs_info. So: simple -> ship, complex -> phone.
+ *
+ * Escalation is unified: anything that can't ship cleanly unattended (complex,
+ * or a "simple" fix that then fails to build) becomes a Port session for Nate
+ * to drive, instead of being silently dropped. Only a clean fix-that-builds ever
+ * reaches the live app. A phone push fires on every outcome (ship / needs-you).
  *
  * Safety:
  *   - ENABLED must be "true" or the daemon idles (kill switch).
@@ -52,6 +60,16 @@ const ENABLED = (process.env.ENABLED || "").toLowerCase() === "true";
 const POLL_MS = +(process.env.POLL_MS || 15000);
 const MAX_ITEM_MS = +(process.env.MAX_ITEM_MS || 1500000);
 const SINCE_FILE = process.env.SINCE_FILE || join(HERE, ".since");
+// Owner + Port handoff. When an item is judged COMPLEX (needs decisions) or a
+// "simple" fix fails to build, the daemon does NOT ship — it opens a Port
+// session (a row in port_sessions the phone PWA lists) aimed at the repo, seeds
+// it with the patch context + triage analysis, and pings the phone. Same
+// Supabase project as Port, so this daemon writes those rows directly.
+const OWNER = process.env.OWNER_ID || "24c79501-4011-46c9-a3d3-a716d732d69c";
+const PUSH_SECRET = process.env.PORT_PUSH_SECRET || "";
+const PUSH_URL = process.env.PORT_PUSH_URL || `${URL}/functions/v1/port-push`;
+// Ping the phone on every clean auto-ship too (not just on escalations).
+const NOTIFY_SHIPS = (process.env.NOTIFY_SHIPS || "true").toLowerCase() === "true";
 
 // Patch app slug -> GitHub repo (github.com/GH_OWNER/<repo>). resin is an external
 // app tracked for bug capture only — no repo, never auto-fixed.
@@ -135,11 +153,13 @@ function runClaude({ prompt, cwd }) {
   });
 }
 
-// Build a fix brief from the typed Patch fields.
+// Build a triage + fix brief from the typed Patch fields. Claude first decides
+// whether the item is a SIMPLE mechanical fix it can safely ship, or a COMPLEX
+// one that needs Nate's decisions before any code changes.
 function buildPrompt(it) {
   const L = [];
   const type = it.type || "bug";
-  L.push(`You are fixing a ${type} in this repo (the live app deploys from the default branch on push).`);
+  L.push(`You are triaging then (if safe) fixing a ${type} in this repo (the live app deploys from the default branch on push).`);
   L.push("");
   if (it.where_in_app) L.push(`Where: ${it.where_in_app}`);
   if (type === "bug") {
@@ -152,15 +172,35 @@ function buildPrompt(it) {
   if (it.my_guess) L.push(`My guess at the cause: ${it.my_guess}`);
   if (it.device_context) L.push(`Device: ${it.device_context}`);
   L.push("");
-  L.push("Instructions:");
-  L.push("- Investigate, then make the minimal correct change. Match surrounding style.");
-  L.push("- Edit files ONLY. Do NOT run git commit, git push, or bump any service-worker cache — the deploy pipeline handles that.");
-  L.push("- If this is a build/Vite app, you may run the build to check your work, but do not commit build output unless the repo already tracks it.");
-  L.push("- If you cannot reproduce it, it needs more info, or no code change is warranted, make NO edits.");
+  L.push("STEP 1 — TRIAGE. Investigate the code, then judge this item as SIMPLE or COMPLEX.");
+  L.push("SIMPLE = a clear, localized, low-risk change with no product/design judgement calls:");
+  L.push("  one obvious cause, a small diff, no ambiguity about the intended behaviour, nothing");
+  L.push("  that changes UX, data shape, or copy in a way you'd want a human to approve.");
+  L.push("COMPLEX = anything that needs a decision: ambiguous or underspecified scope, multiple");
+  L.push("  reasonable approaches, a product/design/UX choice, risky or cross-cutting changes,");
+  L.push("  new data model / migration, or you're not confident the requested behaviour is right.");
+  L.push("When in doubt, choose COMPLEX. It is far better to hand a borderline item to Nate than to");
+  L.push("auto-ship a guess to the live app.");
   L.push("");
-  L.push('When done, output EXACTLY ONE final line of JSON (nothing after it):');
-  L.push('PATCHFIX_RESULT: {"outcome":"fixed|cant_reproduce|needs_info|no_change","summary":"<one sentence>"}');
+  L.push("STEP 2 — ACT on your judgement:");
+  L.push("- If SIMPLE: make the minimal correct change now. Match surrounding style. Edit files ONLY.");
+  L.push("  Do NOT run git commit / git push / bump any service-worker cache — the pipeline handles that.");
+  L.push("  You may run the build to check your work; don't commit build output unless already tracked.");
+  L.push("- If COMPLEX: make NO edits. Instead write a short brief for Nate FIRST (plain prose, a few");
+  L.push("  lines): what the item is asking, what you found in the code, the options with tradeoffs, and");
+  L.push("  the exact decision(s) you need from him. This brief seeds a phone session where he'll drive it.");
+  L.push("- If you cannot reproduce it or no code change is warranted: make NO edits and say why.");
+  L.push("");
+  L.push('When done, output your prose brief (COMPLEX only), THEN exactly one final line of JSON, nothing after it:');
+  L.push('PATCHFIX_RESULT: {"outcome":"fixed|complex|cant_reproduce|no_change","summary":"<one sentence>"}');
+  L.push('Use outcome "fixed" only when SIMPLE and you actually made the edit; "complex" when it needs Nate\'s decisions.');
   return L.join("\n");
+}
+
+// Everything Claude wrote before the final PATCHFIX_RESULT line — used as the
+// analysis brief seeded into a Port session for complex / escalated items.
+function stripVerdict(text) {
+  return (text || "").replace(/PATCHFIX_RESULT:\s*\{.*\}\s*$/s, "").trim();
 }
 
 function parseVerdict(text) {
@@ -245,6 +285,73 @@ async function finish(id, fields) {
   }
 }
 
+// Fire a phone push via Port's push edge function. Best-effort — never throws,
+// never blocks the pipeline. No-op if PORT_PUSH_SECRET isn't configured.
+async function pushNotify(title, body) {
+  if (!PUSH_SECRET) return;
+  try {
+    const r = await fetch(PUSH_URL, {
+      method: "POST",
+      headers: { authorization: `Bearer ${PUSH_SECRET}`, "content-type": "application/json" },
+      body: JSON.stringify({ title, body }),
+    });
+    if (!r.ok) log(`push ${title} -> ${r.status}`);
+  } catch (e) { log(`push failed: ${String(e).slice(0, 120)}`); }
+}
+
+// Hand a complex / un-shippable item to Port: create (or refresh) a named
+// port_sessions row aimed at the repo checkout and seed the chat with the patch
+// context + Claude's triage brief, so the phone session is warm when Nate opens
+// it. Returns the session id. The repo is already clean-checked-out at `dir`
+// (= CODE_DIR/repo = the same /home/nate/code/<repo> Port drives from).
+async function openPortSession(it, repo, dir, analysis, reason) {
+  const short = it.id.slice(0, 8);
+  const sid = `patch-${short}`;
+  const type = it.type || "bug";
+  const title = `${it.app}: ${(it.title || it.where_in_app || it.description || short).replace(/\s+/g, " ").slice(0, 44)}`;
+
+  const ctx = [];
+  if (it.where_in_app) ctx.push(`Where: ${it.where_in_app}`);
+  if (type === "bug") {
+    if (it.expected) ctx.push(`Expected: ${it.expected}`);
+    if (it.actual) ctx.push(`Actual: ${it.actual}`);
+    if (it.severity) ctx.push(`Severity: ${it.severity}`);
+  }
+  if (it.description) ctx.push(`Description: ${it.description}`);
+  if (it.my_guess) ctx.push(`My guess: ${it.my_guess}`);
+  if (it.device_context) ctx.push(`Device: ${it.device_context}`);
+
+  const seed = [
+    `You're in the ${repo} repo on the Beelink. A Patch item (${type}/${it.app}) was auto-triaged as NEEDS DECISIONS — ${reason}. It was NOT auto-fixed; it needs Nate's input before any code change.`,
+    "",
+    "PATCH ITEM:",
+    ctx.join("\n"),
+    "",
+    "AUTO-TRIAGE ANALYSIS:",
+    analysis || "(no analysis captured)",
+    "",
+    `Re-orient in the code, then walk Nate through the options and the exact decisions you need. Once he decides, implement it and ship (bump sw.js, commit "${type}: <title> (patch #${short})", push the default branch). This is Patch item ${it.id}.`,
+  ].join("\n");
+
+  // Upsert the session row (idempotent on re-run of the same item).
+  await sb("port_sessions?on_conflict=id", {
+    method: "POST",
+    prefer: "resolution=merge-duplicates,return=minimal",
+    body: {
+      id: sid, user_id: OWNER, project: title, title,
+      cwd: dir, claude_session_id: null, state: "idle",
+    },
+  });
+  // Clear any prior seed for this session, then seed fresh.
+  await sb(`port_messages?session_id=eq.${encodeURIComponent(sid)}`, { method: "DELETE" }).catch(() => {});
+  await sb("port_messages", {
+    method: "POST", prefer: "return=minimal",
+    body: { user_id: OWNER, session_id: sid, role: "user", content: seed },
+  });
+  log(`item ${short} -> Port session '${sid}'`);
+  return { sid, title };
+}
+
 async function processItem(it) {
   const short = it.id.slice(0, 8);
   const repo = APP_REPO[it.app];
@@ -258,28 +365,47 @@ async function processItem(it) {
     const run = await runClaude({ prompt: buildPrompt(it), cwd: dir });
     const verdict = parseVerdict(run.text);
     const summary = (verdict && verdict.summary) || run.text.split("\n").filter(Boolean).slice(-1)[0] || "(no summary)";
+    const analysis = stripVerdict(run.text);
+    const outcome = verdict && verdict.outcome;
 
     const diff = await sh("git", ["status", "--porcelain"], { cwd: dir });
     const changed = !!(diff.out || "").trim();
 
+    // Escalate to a phone-driveable Port session: don't ship, hand it to Nate.
+    const escalate = async (reason, brief) => {
+      await discard(dir);
+      const { title } = await openPortSession(it, repo, dir, brief || analysis, reason);
+      await finish(it.id, { status: "needs_info", resolution: `Needs decisions -> Port session 'patch-${short}'. ${reason}` });
+      await pushNotify(`Needs you: ${title}`, `${reason} - open Port to drive it.`);
+      log(`item ${short} ESCALATED (${reason})`);
+    };
+
+    // The daemon couldn't even run Claude — surface it, but nothing to drive.
     if (!run.ok && !changed) {
       await finish(it.id, { status: "needs_info", resolution: `Claude run failed: ${summary.slice(0, 400)}` });
+      await pushNotify(`Auto-fix stalled: ${it.app}`, summary.slice(0, 120));
       return;
     }
-    if (verdict && verdict.outcome && verdict.outcome !== "fixed") {
+    // COMPLEX (or any non-"fixed" verdict): needs Nate's decisions -> Port.
+    if (outcome === "complex") { await escalate("triaged as complex", analysis); return; }
+    if (outcome && outcome !== "fixed") {
       await discard(dir);
-      await finish(it.id, { status: "needs_info", resolution: `${verdict.outcome}: ${summary.slice(0, 400)}` });
+      await finish(it.id, { status: "needs_info", resolution: `${outcome}: ${summary.slice(0, 400)}` });
+      await pushNotify(`Auto-fix skipped: ${it.app}`, `${outcome}: ${summary.slice(0, 100)}`);
       return;
     }
+    // Claimed "fixed" but produced no diff — treat as needing a human look.
     if (!changed) {
       await finish(it.id, { status: "needs_info", resolution: `No changes made: ${summary.slice(0, 400)}` });
+      await pushNotify(`Auto-fix made no change: ${it.app}`, summary.slice(0, 120));
       return;
     }
 
+    // Simple fix that must build clean before it ships. If it doesn't, the
+    // change isn't shippable unattended -> escalate to Port instead of dropping.
     const build = await verifyBuild(dir);
     if (!build.ok) {
-      await discard(dir);
-      await finish(it.id, { status: "needs_info", resolution: `Build failed, not shipped. ${build.log.slice(-600)}` });
+      await escalate("auto-fix did not build", `A simple fix was attempted but the build failed, so it was not shipped.\n\n${analysis}\n\nBuild error:\n${build.log.slice(-800)}`);
       return;
     }
 
@@ -295,6 +421,7 @@ async function processItem(it) {
     const sha = (await sh("git", ["rev-parse", "--short", "HEAD"], { cwd: dir })).out.trim();
     const url = `https://github.com/${GH_OWNER}/${repo}/commit/${sha}`;
     await finish(it.id, { status: "shipped", resolution: `${summary.slice(0, 300)} · ${repo}@${sha} ${url}` });
+    if (NOTIFY_SHIPS) await pushNotify(`Shipped: ${it.app}`, summary.slice(0, 140));
     log(`item ${short} SHIPPED ${repo}@${sha}`);
   } catch (e) {
     if (dir) await discard(dir).catch(() => {});
