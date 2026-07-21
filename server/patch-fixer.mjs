@@ -390,6 +390,7 @@ async function processItem(it) {
     if (!run.ok && !changed) {
       await finish(it.id, { status: "needs_info", resolution: `Claude run failed: ${summary.slice(0, 400)}` });
       await pushNotify(`Auto-fix stalled: ${it.app}`, summary.slice(0, 120));
+      log(`item ${short} STALLED (claude run failed): ${summary.slice(0, 160)}`);
       return;
     }
     // COMPLEX (or any non-"fixed" verdict): needs Nate's decisions -> Port.
@@ -398,12 +399,14 @@ async function processItem(it) {
       await discard(dir);
       await finish(it.id, { status: "needs_info", resolution: `${outcome}: ${summary.slice(0, 400)}` });
       await pushNotify(`Auto-fix skipped: ${it.app}`, `${outcome}: ${summary.slice(0, 100)}`);
+      log(`item ${short} SKIPPED (${outcome}): ${summary.slice(0, 160)}`);
       return;
     }
     // Claimed "fixed" but produced no diff — treat as needing a human look.
     if (!changed) {
       await finish(it.id, { status: "needs_info", resolution: `No changes made: ${summary.slice(0, 400)}` });
       await pushNotify(`Auto-fix made no change: ${it.app}`, summary.slice(0, 120));
+      log(`item ${short} NO CHANGE: ${summary.slice(0, 160)}`);
       return;
     }
 
