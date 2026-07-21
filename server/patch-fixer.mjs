@@ -370,6 +370,12 @@ async function processItem(it) {
 
     const diff = await sh("git", ["status", "--porcelain"], { cwd: dir });
     const changed = !!(diff.out || "").trim();
+    // Files Claude actually edited, captured BEFORE the build runs — the build
+    // (npm install) rewrites others (package-lock.json) and `git add -A` would
+    // otherwise sweep that churn into the shipped commit.
+    const claudeTouched = new Set(
+      (diff.out || "").split("\n").map((l) => l.slice(3).trim()).filter(Boolean)
+    );
 
     // Escalate to a phone-driveable Port session: don't ship, hand it to Nate.
     const escalate = async (reason, brief) => {
@@ -384,6 +390,7 @@ async function processItem(it) {
     if (!run.ok && !changed) {
       await finish(it.id, { status: "needs_info", resolution: `Claude run failed: ${summary.slice(0, 400)}` });
       await pushNotify(`Auto-fix stalled: ${it.app}`, summary.slice(0, 120));
+      log(`item ${short} STALLED (claude run failed): ${summary.slice(0, 160)}`);
       return;
     }
     // COMPLEX (or any non-"fixed" verdict): needs Nate's decisions -> Port.
@@ -392,12 +399,14 @@ async function processItem(it) {
       await discard(dir);
       await finish(it.id, { status: "needs_info", resolution: `${outcome}: ${summary.slice(0, 400)}` });
       await pushNotify(`Auto-fix skipped: ${it.app}`, `${outcome}: ${summary.slice(0, 100)}`);
+      log(`item ${short} SKIPPED (${outcome}): ${summary.slice(0, 160)}`);
       return;
     }
     // Claimed "fixed" but produced no diff — treat as needing a human look.
     if (!changed) {
       await finish(it.id, { status: "needs_info", resolution: `No changes made: ${summary.slice(0, 400)}` });
       await pushNotify(`Auto-fix made no change: ${it.app}`, summary.slice(0, 120));
+      log(`item ${short} NO CHANGE: ${summary.slice(0, 160)}`);
       return;
     }
 
@@ -409,14 +418,40 @@ async function processItem(it) {
       return;
     }
 
+    // Drop build-only churn: revert tracked files the build mutated that Claude
+    // never touched, so the commit contains the fix and nothing else.
+    for (const line of (await sh("git", ["status", "--porcelain"], { cwd: dir })).out.split("\n")) {
+      const f = line.slice(3).trim();
+      if (!f || line.startsWith("??") || claudeTouched.has(f)) continue;
+      await sh("git", ["checkout", "--", f], { cwd: dir });
+    }
+
     await bumpServiceWorker(dir);
     const title = (it.title || it.where_in_app || summary).slice(0, 60);
     const msg = `${it.type}: ${title} (patch auto-fix ${short})\n\n${summary}\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`;
     await sh("git", ["add", "-A"], { cwd: dir });
     const commit = await sh("git", ["commit", "-m", msg], { cwd: dir });
-    if (commit.code !== 0) { await finish(it.id, { status: "needs_info", resolution: `commit failed: ${(commit.err || commit.out).slice(-300)}` }); return; }
-    const push = await sh("git", ["push", "origin", branch], { cwd: dir, timeout: 120000 });
-    if (push.code !== 0) { await finish(it.id, { status: "needs_info", resolution: `push failed: ${(push.err || push.out).slice(-300)}` }); return; }
+    if (commit.code !== 0) { await escalate("auto-fix could not be committed", `${analysis}\n\ncommit failed:\n${(commit.err || commit.out).slice(-600)}`); return; }
+
+    // origin can move while Claude works (Nate pushes from his Mac), which
+    // rejects the push as non-fast-forward. Rebase onto the latest default
+    // branch, re-verify the build, and retry once before giving up.
+    let push = await sh("git", ["push", "origin", branch], { cwd: dir, timeout: 120000 });
+    if (push.code !== 0) {
+      log(`item ${short} push rejected — rebasing onto origin/${branch}`);
+      await sh("git", ["fetch", "origin", "--prune"], { cwd: dir, timeout: 120000 });
+      const rb = await sh("git", ["rebase", `origin/${branch}`], { cwd: dir, timeout: 180000 });
+      if (rb.code !== 0) {
+        await sh("git", ["rebase", "--abort"], { cwd: dir });
+        await escalate("auto-fix conflicts with newer work on the default branch", `${analysis}\n\nRebase conflict:\n${(rb.err || rb.out).slice(-600)}`);
+        return;
+      }
+      const rebuild = await verifyBuild(dir);
+      if (!rebuild.ok) { await escalate("auto-fix did not build after rebasing on newer work", `${analysis}\n\n${rebuild.log.slice(-800)}`); return; }
+      push = await sh("git", ["push", "origin", branch], { cwd: dir, timeout: 120000 });
+      if (push.code !== 0) { await escalate("push still rejected after rebase", `${analysis}\n\npush failed:\n${(push.err || push.out).slice(-600)}`); return; }
+      log(`item ${short} pushed after rebase`);
+    }
 
     const sha = (await sh("git", ["rev-parse", "--short", "HEAD"], { cwd: dir })).out.trim();
     const url = `https://github.com/${GH_OWNER}/${repo}/commit/${sha}`;
