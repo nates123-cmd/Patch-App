@@ -285,9 +285,39 @@ async function finish(id, fields) {
   }
 }
 
-// Fire a phone push via Port's push edge function. Best-effort — never throws,
-// never blocks the pipeline. No-op if PORT_PUSH_SECRET isn't configured.
-async function pushNotify(title, body) {
+// Suite (the native iPhone app) is where Nate's notifications live now: one notifier, one
+// list under its bell. Kind "agent" = a job he started: sent right away, held only in quiet
+// hours, and never lost (a failed send is kept for the morning digest). Returns true when
+// Suite took it, so the caller can skip the Port push.
+const SUITE_NOTIFY_URL = process.env.SUITE_NOTIFY_URL || `${URL}/functions/v1/suite-glance`;
+const SUITE_TOKEN_FILE = process.env.SUITE_TOKEN_FILE || join(homedir(), ".suite-token");
+// Apps Suite hosts: a "Shipped" tap opens the app there to see the change.
+const SUITE_APPS = new Set(["stock", "ink", "cue", "tide", "today", "break", "courseplus"]);
+const PORT_APP_URL = process.env.PORT_APP_URL || `https://${GH_OWNER}.github.io/Port-App/`;
+
+async function suiteNotify(title, body, url) {
+  try {
+    if (!existsSync(SUITE_TOKEN_FILE)) return false;
+    const token = (await readFile(SUITE_TOKEN_FILE, "utf8")).trim();
+    if (!token) return false;
+    const r = await fetch(SUITE_NOTIFY_URL, {
+      method: "POST",
+      headers: { "x-suite-token": token, "content-type": "application/json" },
+      body: JSON.stringify({ action: "notify", kind: "agent", source: "patch-fixer", title, body, url: url || null }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) { log(`suite push ${title} -> ${r.status}`); return false; }
+    const d = await r.json().catch(() => ({}));
+    if (!d.ok) { log(`suite push ${title} refused: ${String(d.error || "").slice(0, 120)}`); return false; }
+    return true;
+  } catch (e) { log(`suite push failed: ${String(e).slice(0, 120)}`); return false; }
+}
+
+// Tell Nate's phone how an item ended. Suite first; Port's push edge function only if Suite
+// did not take it. Best-effort — never throws, never blocks the pipeline.
+// `url` = what the tap opens: the app for a ship, Port for anything that needs him.
+async function pushNotify(title, body, url) {
+  if (await suiteNotify(title, body, url)) return;
   if (!PUSH_SECRET) return;
   try {
     const r = await fetch(PUSH_URL, {
@@ -382,7 +412,7 @@ async function processItem(it) {
       await discard(dir);
       const { title } = await openPortSession(it, repo, dir, brief || analysis, reason);
       await finish(it.id, { status: "needs_info", resolution: `Needs decisions -> Port session 'patch-${short}'. ${reason}` });
-      await pushNotify(`Needs you: ${title}`, `${reason} - open Port to drive it.`);
+      await pushNotify(`Needs you: ${title}`, `${reason} - open Port to drive it.`, PORT_APP_URL);
       log(`item ${short} ESCALATED (${reason})`);
     };
 
@@ -456,7 +486,7 @@ async function processItem(it) {
     const sha = (await sh("git", ["rev-parse", "--short", "HEAD"], { cwd: dir })).out.trim();
     const url = `https://github.com/${GH_OWNER}/${repo}/commit/${sha}`;
     await finish(it.id, { status: "shipped", resolution: `${summary.slice(0, 300)} · ${repo}@${sha} ${url}` });
-    if (NOTIFY_SHIPS) await pushNotify(`Shipped: ${it.app}`, summary.slice(0, 140));
+    if (NOTIFY_SHIPS) await pushNotify(`Shipped: ${it.app}`, summary.slice(0, 140), SUITE_APPS.has(it.app) ? `suite://open/${it.app}` : null);
     log(`item ${short} SHIPPED ${repo}@${sha}`);
   } catch (e) {
     if (dir) await discard(dir).catch(() => {});

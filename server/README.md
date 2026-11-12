@@ -40,6 +40,14 @@ ever reaches the live app. Other guards:
 - One item at a time — no two git operations race.
 - Per-item hard timeout (`MAX_ITEM_MS`); stuck `in_progress` rows are reaped to `needs_info`.
 
+## Phone pings
+
+Every outcome (Shipped, Needs you, stalled, skipped, no change) goes to **Suite's notifier**
+first (`suite-glance` `notify`, kind `agent`, token read from `~/.suite-token`), so it lands
+with the rest of Nate's notifications under Suite's bell. A Shipped tap opens the app inside
+Suite; a Needs-you tap opens Port. Port's own push (`PORT_PUSH_SECRET`) is the fallback, used
+only when Suite does not take the ping (no token file, or the call fails).
+
 ## App -> repo map
 
 `break`→5-minute-app · `course`→Course-App · `courseplus`→Course-plus-app · `crate`→Crate ·
